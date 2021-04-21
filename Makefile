@@ -374,7 +374,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -fno-delete-null-pointer-checks
 
-#// 20120105, albatros, imei ÁÖ¼Ò°ªÀÇ °ø¿ëÀ¸·Î »ç¿ëÀ» À§ÇØ¼­
+#// 20120105, albatros, imei ì£¼ì†Œê°’ì˜ ê³µìš©ìœ¼ë¡œ ì‚¬ìš©ì„ ìœ„í•´ì„œ
 ifeq ($(OEM_PRODUCT_MANUFACTURER),PANTECH)
 LINUXINCLUDE += -I$(srctree)/../pantech/frameworks/sky_rawdata
 endif
@@ -582,6 +582,8 @@ endif # $(dot-config)
 # This allow a user to issue only 'make' to build a kernel including modules
 # Defaults to vmlinux, but the arch makefile usually adds further targets
 all: vmlinux
+
+KBUILD_CFLAGS	+= $(call cc-disable-warning,maybe-uninitialized,)
 
 ifdef CONFIG_CC_OPTIMIZE_FOR_SIZE
 KBUILD_CFLAGS	+= -Os
