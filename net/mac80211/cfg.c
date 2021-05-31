@@ -951,15 +951,15 @@ static int ieee80211_add_station(struct wiphy *wiphy, struct net_device *dev,
 }
 
 static int ieee80211_del_station(struct wiphy *wiphy, struct net_device *dev,
-				 u8 *mac)
+				 struct station_del_parameters *params)
 {
 	struct ieee80211_local *local = wiphy_priv(wiphy);
 	struct ieee80211_sub_if_data *sdata;
 
 	sdata = IEEE80211_DEV_TO_SUB_IF(dev);
 
-	if (mac)
-		return sta_info_destroy_addr_bss(sdata, mac);
+	if (params->mac)
+		return sta_info_destroy_addr_bss(sdata, params->mac);
 
 	sta_info_flush(local, sdata);
 	return 0;
@@ -984,9 +984,11 @@ static int ieee80211_change_station(struct wiphy *wiphy,
 		return -ENOENT;
 	}
 
-	/* in station mode, supported rates are only valid with TDLS */
+	/* in station mode, some updates are only valid with TDLS */
 	if (sdata->vif.type == NL80211_IFTYPE_STATION &&
-	    params->supported_rates &&
+	    (params->supported_rates || params->ht_capa || params->vht_capa ||
+	     params->sta_modify_mask ||
+	     (params->sta_flags_mask & BIT(NL80211_STA_FLAG_WME))) &&
 	    !test_sta_flag(sta, WLAN_STA_TDLS_PEER)) {
 		mutex_unlock(&local->sta_mtx);
 		return -EINVAL;

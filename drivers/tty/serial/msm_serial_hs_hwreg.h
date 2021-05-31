@@ -1,6 +1,6 @@
 /* drivers/serial/msm_serial_hs_hwreg.h
  *
- * Copyright (c) 2007-2009, 2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2007-2015, The Linux Foundation. All rights reserved.
  * 
  * All source code in this file is licensed under the following license
  * except where indicated.
@@ -31,6 +31,9 @@
 #define TCSR_ADM_1_B_CRCI_MUX_SEL      0x7C
 #define ADM1_CRCI_GSBI6_RX_SEL         0x800
 #define ADM1_CRCI_GSBI6_TX_SEL         0x400
+
+#define MSM_ENABLE_UART_CLOCK 0x5441
+#define MSM_DISABLE_UART_CLOCK 0x5442
 
 enum msm_hsl_regs {
 	UARTDM_MR1,
@@ -184,8 +187,8 @@ enum msm_hsl_regs {
 /* Parity configuration */
 #define NO_PARITY 0x0
 #ifdef CONFIG_MACH_MSM8960_EF44S  // [LS3]KSCHOI 20130207, uart gpio not active		
-#define EVEN_PARITY 0x1
-#define ODD_PARITY 0x2
+#define EVEN_PARITY 0x2
+#define ODD_PARITY 0x1
 #else
 #define EVEN_PARITY 0x2
 #define ODD_PARITY 0x1

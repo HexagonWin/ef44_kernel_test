@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1006,6 +1006,19 @@ static struct gpiomux_setting gsbi3_active_cfg = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
+static struct gpiomux_setting gsbi6_active_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct gpiomux_setting gsbi6_suspended_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+};
+
+
 static struct gpiomux_setting external_vfr[] = {
 	/* Suspended state */
 	{
@@ -1029,13 +1042,26 @@ static struct gpiomux_setting gsbi_uart = {
 
 #if defined(CONFIG_PANTECH_PMIC_MAX17058)
 #if defined(CONFIG_MACH_MSM8960_EF44S) || defined(T_MAGNUS)
+
+static struct gpiomux_setting gsbi8_uartdm_active_cfg = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_8MA,
+	.pull = GPIOMUX_PULL_NONE,
+};
+
+static struct gpiomux_setting gsbi8_uartdm_suspended_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_2MA,
+	.pull = GPIOMUX_PULL_DOWN,
+};
+
 static struct gpiomux_setting gsbi9_active_cfg = {
 	.func = GPIOMUX_FUNC_2,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 static struct gpiomux_setting gsbi9_suspended_cfg = {
-	.func = GPIOMUX_FUNC_2, /*i2c suspend*/
+	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
@@ -1211,23 +1237,29 @@ static struct gpiomux_setting hap_lvl_shft_active_config = {
 
 static struct gpiomux_setting ap2mdm_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_8MA,
+	.drv = GPIOMUX_DRV_4MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
 static struct gpiomux_setting mdm2ap_status_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_8MA,
+	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_NONE,
 };
 
 static struct gpiomux_setting mdm2ap_errfatal_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_16MA,
+	.drv = GPIOMUX_DRV_2MA,
 	.pull = GPIOMUX_PULL_DOWN,
 };
 
 static struct gpiomux_setting ap2mdm_kpdpwr_n_cfg = {
+	.func = GPIOMUX_FUNC_GPIO,
+	.drv = GPIOMUX_DRV_4MA,
+	.pull = GPIOMUX_PULL_DOWN,
+};
+
+static struct gpiomux_setting usbsw_cfg = {
 	.func = GPIOMUX_FUNC_GPIO,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_DOWN,
@@ -1299,6 +1331,37 @@ static struct msm_gpiomux_config msm8960_ethernet_configs[] = {
 	},
 };
 #endif
+/* GSBI8 UART GPIOs for Atheros Bluetooth */
+static struct msm_gpiomux_config msm8960_gsbi8_uartdm_configs[] = {
+	{
+		.gpio = 34,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi8_uartdm_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi8_uartdm_active_cfg,
+		}
+	},
+	{
+		.gpio = 35,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi8_uartdm_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi8_uartdm_active_cfg,
+		}
+	},
+	{
+		.gpio = 36,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi8_uartdm_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi8_uartdm_active_cfg,
+		}
+	},
+	{
+		.gpio = 37,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi8_uartdm_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi8_uartdm_active_cfg,
+		}
+	},
+};
 
 static struct msm_gpiomux_config msm8960_fusion_gsbi_configs[] = {
 	{
@@ -1433,6 +1496,34 @@ static struct msm_gpiomux_config msm8960_gsbi_configs[] __initdata = {
     },
 #endif
 #endif  // #if defined(CONFIG_PANTECH_PMIC_MAX17058)
+	{
+		.gpio      = 26,	/* GSBI6 WLAN_PWD_L for AR6004 */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi6_suspended_cfg,
+			[GPIOMUX_ACTIVE] = &gsbi6_active_cfg,
+		},
+	},
+	{
+		.gpio      = 27,        /* GSBI6 BT_INT2AP_N for AR3002 */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi6_suspended_cfg,
+			[GPIOMUX_ACTIVE]    = &gsbi6_active_cfg,
+		},
+	},
+	{
+		.gpio      = 28,        /* GSBI6 BT_EN for AR3002 */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi6_suspended_cfg,
+			[GPIOMUX_ACTIVE]    = &gsbi6_active_cfg,
+		},
+	},
+	{
+		.gpio      = 29,        /* GSBI6 BT_WAKE for AR3002 */
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &gsbi6_suspended_cfg,
+			[GPIOMUX_ACTIVE]    = &gsbi6_active_cfg,
+		},
+	},
 	{
 		.gpio      = 44,	/* GSBI12 I2C QUP SDA */
 		.settings = {
@@ -1842,6 +1933,16 @@ static struct msm_gpiomux_config hap_lvl_shft_config[] __initdata = {
 	},
 };
 
+static struct msm_gpiomux_config hap_lvl_shft_config_sglte[] __initdata = {
+	{
+		.gpio = 89,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &hap_lvl_shft_suspended_config,
+			[GPIOMUX_ACTIVE] = &hap_lvl_shft_active_config,
+		},
+	},
+};
+
 static struct msm_gpiomux_config sglte_configs[] __initdata = {
 	/* AP2MDM_STATUS */
 	{
@@ -1892,6 +1993,13 @@ static struct msm_gpiomux_config sglte_configs[] __initdata = {
 			[GPIOMUX_SUSPENDED] = &ap2mdm_cfg,
 		}
 	},
+	/* USB_SW */
+	{
+		.gpio = 25,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &usbsw_cfg,
+		}
+	}
 };
 
 static struct msm_gpiomux_config msm8960_mdp_vsync_configs[] __initdata = {
@@ -2222,8 +2330,9 @@ int __init msm8960_init_gpiomux(void)
 	}
 
 #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
-	msm_gpiomux_install(msm8960_ethernet_configs,
-			ARRAY_SIZE(msm8960_ethernet_configs));
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE)
+		msm_gpiomux_install(msm8960_ethernet_configs,
+				ARRAY_SIZE(msm8960_ethernet_configs));
 #endif
 
 	msm_gpiomux_install(msm8960_gsbi_configs,
@@ -2264,9 +2373,15 @@ int __init msm8960_init_gpiomux(void)
 #endif // !CONFIG_WIFI_CONTROL_FUNC
 
 	if (machine_is_msm8960_mtp() || machine_is_msm8960_fluid() ||
-		machine_is_msm8960_liquid() || machine_is_msm8960_cdp())
-		msm_gpiomux_install(hap_lvl_shft_config,
-			ARRAY_SIZE(hap_lvl_shft_config));
+		machine_is_msm8960_liquid() || machine_is_msm8960_cdp()) {
+		if (socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_SGLTE)
+			msm_gpiomux_install(hap_lvl_shft_config_sglte,
+				ARRAY_SIZE(hap_lvl_shft_config_sglte));
+
+		else
+			msm_gpiomux_install(hap_lvl_shft_config,
+				ARRAY_SIZE(hap_lvl_shft_config));
+	}
 
 #ifdef CONFIG_USB_EHCI_MSM_HSIC
 	if ((SOCINFO_VERSION_MAJOR(socinfo_get_version()) != 1) &&
@@ -2289,6 +2404,10 @@ int __init msm8960_init_gpiomux(void)
 
 	msm_gpiomux_install(msm8960_mdp_vsync_configs,
 			ARRAY_SIZE(msm8960_mdp_vsync_configs));
+
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE)
+		msm_gpiomux_install(msm8960_gsbi8_uartdm_configs,
+			ARRAY_SIZE(msm8960_gsbi8_uartdm_configs));
 
 #ifdef CONFIG_PANTECH_CHARGER_WIRELESS
 	msm_gpiomux_install(msm8960_wireless_charger_configs,

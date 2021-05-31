@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,12 +21,12 @@
 			{\
 				.src = MSM_BUS_MASTER_AMPSS_M0, \
 				.dst = MSM_BUS_SLAVE_EBI_CH0, \
-				.ib = (_bw) * 1000000UL, \
+				.ib = (_bw) * 1000000ULL, \
 			}, \
 			{ \
 				.src = MSM_BUS_MASTER_AMPSS_M1, \
 				.dst = MSM_BUS_SLAVE_EBI_CH0, \
-				.ib = (_bw) * 1000000UL, \
+				.ib = (_bw) * 1000000ULL, \
 			}, \
 		}, \
 		.num_paths = 2, \
@@ -39,6 +39,7 @@ enum src_id {
 	PLL_0 = 0,
 	HFPLL,
 	PLL_8,
+	NUM_SRC_ID,
 };
 
 /**
@@ -46,12 +47,16 @@ enum src_id {
  */
 enum pvs {
 	PVS_SLOW = 0,
-	PVS_NOMINAL,
-	PVS_FAST,
-	PVS_FASTER,
-	PVS_UNKNOWN,
-	NUM_PVS
+	PVS_NOMINAL = 1,
+	PVS_FAST = 3,
+	PVS_FASTER = 4,
+	NUM_PVS = 15
 };
+
+/**
+ * The maximum number of speed bins.
+ */
+#define NUM_SPEED_BINS (16)
 
 /**
  * enum scalables - IDs of frequency scalable hardware blocks.
@@ -160,11 +165,16 @@ struct acpu_level {
  * @n_offset: "N" value register offset from base address.
  * @config_offset: Configuration register offset from base address.
  * @config_val: Value to initialize the @config_offset register to.
+ * @has_user_reg: Indicates the presence of an addition config register.
+ * @user_offset: User register offset from base address, if applicable.
+ * @user_val: Value to initialize the @user_offset register to.
+ * @user_vco_mask: Bit in the @user_offset to enable high-frequency VCO mode.
  * @has_droop_ctl: Indicates the presence of a voltage droop controller.
  * @droop_offset: Droop controller register offset from base address.
  * @droop_val: Value to initialize the @config_offset register to.
  * @low_vdd_l_max: Maximum "L" value supported at HFPLL_VDD_LOW.
  * @nom_vdd_l_max: Maximum "L" value supported at HFPLL_VDD_NOM.
+ * @low_vco_l_max: Maximum "L" value supported in low-frequency VCO mode.
  * @vdd: voltage requirements for each VDD level for the L2 PLL.
  */
 struct hfpll_data {
@@ -174,11 +184,16 @@ struct hfpll_data {
 	const u32 n_offset;
 	const u32 config_offset;
 	const u32 config_val;
+	const bool has_user_reg;
+	const u32 user_offset;
+	const u32 user_val;
+	const u32 user_vco_mask;
 	const bool has_droop_ctl;
 	const u32 droop_offset;
 	const u32 droop_val;
-	const u32 low_vdd_l_max;
-	const u32 nom_vdd_l_max;
+	u32 low_vdd_l_max;
+	u32 nom_vdd_l_max;
+	const u32 low_vco_l_max;
 	const int vdd[NUM_HFPLL_VDD];
 };
 
@@ -227,7 +242,7 @@ struct pvs_table {
  * @scalable: Array of scalables.
  * @scalable_size: Size of @scalable.
  * @hfpll_data: HFPLL configuration data.
- * @pvs_tables: CPU frequency tables.
+ * @pvs_tables: 2D array of CPU frequency tables.
  * @l2_freq_tbl: L2 frequency table.
  * @l2_freq_tbl_size: Size of @l2_freq_tbl.
  * @pte_efuse_phys: Physical address of PTE EFUSE.
@@ -238,7 +253,7 @@ struct acpuclk_krait_params {
 	struct scalable *scalable;
 	size_t scalable_size;
 	struct hfpll_data *hfpll_data;
-	struct pvs_table *pvs_tables;
+	struct pvs_table (*pvs_tables)[NUM_PVS];
 	struct l2_level *l2_freq_tbl;
 	size_t l2_freq_tbl_size;
 	phys_addr_t pte_efuse_phys;
