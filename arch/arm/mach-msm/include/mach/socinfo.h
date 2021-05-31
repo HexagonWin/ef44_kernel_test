@@ -129,23 +129,6 @@ enum pmic_model {
 	PMIC_MODEL_UNKNOWN	= 0xFFFFFFFF
 };
 
-enum pmic_model {
-	PMIC_MODEL_PM8058	= 13,
-	PMIC_MODEL_PM8028	= 14,
-	PMIC_MODEL_PM8901	= 15,
-	PMIC_MODEL_PM8027	= 16,
-	PMIC_MODEL_ISL_9519	= 17,
-	PMIC_MODEL_PM8921	= 18,
-	PMIC_MODEL_PM8018	= 19,
-	PMIC_MODEL_PM8015	= 20,
-	PMIC_MODEL_PM8014	= 21,
-	PMIC_MODEL_PM8821	= 22,
-	PMIC_MODEL_PM8038	= 23,
-	PMIC_MODEL_PM8922	= 24,
-	PMIC_MODEL_PM8917	= 25,
-	PMIC_MODEL_UNKNOWN	= 0xFFFFFFFF
-};
-
 enum msm_cpu socinfo_get_msm_cpu(void);
 uint32_t socinfo_get_id(void);
 uint32_t socinfo_get_version(void);
@@ -427,18 +410,6 @@ static inline int cpu_is_msm8625(void)
 
 	BUG_ON(cpu == MSM_CPU_UNKNOWN);
 	return cpu == MSM_CPU_8625;
-#else
-	return 0;
-#endif
-}
-
-static inline int cpu_is_msm8974(void)
-{
-#ifdef CONFIG_ARCH_MSM8974
-	enum msm_cpu cpu = socinfo_get_msm_cpu();
-
-	BUG_ON(cpu == MSM_CPU_UNKNOWN);
-	return cpu == MSM_CPU_8974;
 #else
 	return 0;
 #endif

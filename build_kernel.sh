@@ -11,7 +11,7 @@
 # set toolchain
 ##############################################################################
 export ARCH=arm
-export CROSS_COMPILE=~/{Your path}/arm-eabi-4.6/bin/arm-eabi-
+export CROSS_COMPILE=~/arm-eabi-4.6/bin/arm-eabi-
 
 ##############################################################################
 # make zImage

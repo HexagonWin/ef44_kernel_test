@@ -488,7 +488,7 @@ void __show_regs(struct pt_regs *regs)
 #endif
 
 	set_crash_store_enable();
-#endif
+
 	printk("CPU: %d    %s  (%s %.*s)\n",
 		raw_smp_processor_id(), print_tainted(),
 		init_utsname()->release,
