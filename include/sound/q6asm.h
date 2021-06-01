@@ -160,10 +160,7 @@ struct audio_client {
 
 	atomic_t		cmd_state;
 	atomic_t		cmd_close_state;
-    Device crashes when Audio Stability is run, and where commands of Volume and Close are sent consecutively*/
-#ifdef CONFIG_PANTECH_SND
-	atomic_t		cmd_close_state;
-#endif
+    /* Device crashes when Audio Stability is run, and where commands of Volume and Close are sent consecutively*/
 	atomic_t		time_flag;
 	atomic_t		nowait_cmd_cnt;
 	wait_queue_head_t	cmd_wait;
@@ -206,8 +203,8 @@ int q6asm_open_read_compressed(struct audio_client *ac,
 
 int q6asm_open_write(struct audio_client *ac, uint32_t format);
 
-int q6asm_open_write_v2(struct audio_client *ac, uint32_t format,
-			uint16_t bits_per_sample);
+/*int q6asm_open_write_v2(struct audio_client *ac, uint32_t format,
+			uint16_t bits_per_sample);*/
 
 int q6asm_open_write_compressed(struct audio_client *ac,
 					 uint32_t format);
@@ -217,9 +214,9 @@ int q6asm_open_read_write(struct audio_client *ac,
 			uint32_t wr_format);
 
 int q6asm_open_loopback(struct audio_client *ac);
-
+/*
 int q6asm_open_loopback_v2(struct audio_client *ac,
-			   uint16_t bits_per_sample);
+			   uint16_t bits_per_sample);*/
 
 int q6asm_write(struct audio_client *ac, uint32_t len, uint32_t msw_ts,
 				uint32_t lsw_ts, uint32_t flags);
@@ -282,10 +279,10 @@ int q6asm_enc_cfg_blk_pcm_native(struct audio_client *ac,
 
 int q6asm_enc_cfg_blk_multi_ch_pcm(struct audio_client *ac,
 			uint32_t rate, uint32_t channels);
-
+/*
 int q6asm_enc_cfg_blk_multi_ch_pcm_v2(struct audio_client *ac,
 			uint32_t rate, uint32_t channels,
-			uint16_t bits_per_sample);
+			uint16_t bits_per_sample);*/
 
 int q6asm_enable_sbrps(struct audio_client *ac,
 			uint32_t sbr_ps);
@@ -314,19 +311,19 @@ int q6asm_enc_cfg_blk_amrwb(struct audio_client *ac, uint32_t frames_per_buf,
 
 int q6asm_media_format_block_pcm(struct audio_client *ac,
 				 uint32_t rate, uint32_t channels);
-
+/*
 int q6asm_media_format_block_pcm_v2(struct audio_client *ac,
 			uint32_t rate, uint32_t channels,
-			uint16_t bits_per_sample);
+			uint16_t bits_per_sample);*/
 
 int q6asm_media_format_block_multi_ch_pcm(struct audio_client *ac,
 				uint32_t rate, uint32_t channels);
-
+/*
 int q6asm_media_format_block_multi_ch_pcm_v2(struct audio_client *ac,
 					     uint32_t rate,
 					     uint32_t channels,
 					     uint16_t bits_per_sample);
-
+*/
 int q6asm_media_format_block_aac(struct audio_client *ac,
 			struct asm_aac_cfg *cfg);
 

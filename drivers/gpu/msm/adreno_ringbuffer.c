@@ -559,7 +559,7 @@ adreno_ringbuffer_addcmds(struct adreno_ringbuffer *rb,
 	if (adreno_is_a2xx(adreno_dev))
 		total_sizedwords += 2; /* CP_WAIT_FOR_IDLE */
 
-#endif
+
 
 	total_sizedwords += 2; /* scratchpad ts for recovery */
 	total_sizedwords += 3; /* sop timestamp */

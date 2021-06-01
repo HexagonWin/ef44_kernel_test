@@ -340,7 +340,7 @@ mode_sysfs_add_exit:
 /******************************************************************************
  * CONFIG_MSM_IDLE_STATS
  *****************************************************************************/
-#if defined(CONFIG_PANTECH_PMIC)
+/*#if defined(CONFIG_PANTECH_PMIC)
 static oem_pm_smem_vendor1_data_type *smem_id_vendor1_ptr;
 static uint32_t oem_prev_reset=0;  // 20111021 jylee for apanic
 
@@ -400,7 +400,7 @@ int get_hw_revision(void)  // p14527 added for gain hw_revision
 }
 EXPORT_SYMBOL(get_hw_revision);
 
-#endif
+#endif */
 
 
 /******************************************************************************
@@ -1328,10 +1328,6 @@ static int __init msm_pm_setup_saved_state(void)
 	pmd_t *pmd;
 	unsigned long pmdval;
 	unsigned long exit_phys;
-
-#if defined(CONFIG_PANTECH_PMIC)
-  struct proc_dir_entry *oem_pm_power_on_info;
-#endif
 
 	/* Page table for cores to come back up safely. */
 

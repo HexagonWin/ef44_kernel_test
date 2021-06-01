@@ -815,9 +815,10 @@ int adm_multi_ch_copp_open(int port_id, int path, int rate, int channel_mode,
 		if (perfmode) {
 			pr_debug("%s Performance mode", __func__);
 			open.flags = ADM_MULTI_CH_COPP_OPEN_PERF_MODE_BIT;
-		}
-
-			open.reserved = 0;
+//			open.reserved = PCM_BITS_PER_SAMPLE;
+		} else {
+            open.hdr.opcode = ADM_CMD_MULTI_CHANNEL_COPP_OPEN;
+//			open.reserved = 0;
 		}
 
 		memset(open.dev_channel_mapping, 0, 8);

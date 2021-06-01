@@ -368,10 +368,14 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+#Remove -Wall#
+
+KBUILD_CFLAGS   := -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
-		   -Werror-implicit-function-declaration \
+#		   -Werror-implicit-function-declaration \
 		   -Wno-format-security \
+		   -Wno-error=maybe-uninitialized \
+		   -Wno-error=declaration-after-statement \
 		   -fno-delete-null-pointer-checks
 
 #// 20120105, albatros, imei 주소값의 공용으로 사용을 위해서
@@ -646,7 +650,8 @@ NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 CHECKFLAGS     += $(NOSTDINC_FLAGS)
 
 # warn about C99 declaration after statement
-KBUILD_CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
+#KBUILD_CFLAGS += $(call cc-option,-Wdeclaration-after-statement,)
+#210601 hexagonwin. Disable because error unsolvable. THIS IS A WORKAROUND. PLEASE FIX IN THE FUTURE!
 
 # disable pointer signed / unsigned warnings in gcc 4.0
 KBUILD_CFLAGS += $(call cc-disable-warning, pointer-sign)

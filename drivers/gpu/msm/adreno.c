@@ -1781,10 +1781,7 @@ static int adreno_stop(struct kgsl_device *device)
  * mark all as guilty
  */
 
-static int _mark_context_status(int id, void *ptr, void *data)
-	 * since thats the guilty party, if recovery failed then
-	 * mark all as guilty
-	 */
+static int _mark_context_status(int id, void *ptr, void *data) {
 	while ((context = idr_get_next(&device->context_idr, &next))) {
 		struct adreno_context *adreno_context = context->devctxt;
 		if (recovery_status) {

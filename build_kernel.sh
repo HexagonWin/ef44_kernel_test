@@ -17,11 +17,11 @@ export CROSS_COMPILE=~/arm-eabi-4.6/bin/arm-eabi-
 # make zImage
 ##############################################################################
 mkdir -p ./obj/KERNEL_OBJ/
-make O=./obj/KERNEL_OBJ/ msm8960_ef44s_tp20_user_defconfig
+make O=./obj/KERNEL_OBJ/ Lineage_ef44_defconfig
 make -j4 O=./obj/KERNEL_OBJ/
 
 ##############################################################################
 # Copy Kernel Image
 ##############################################################################
-cp -f ./obj/KERNEL_OBJ/arch/arm/boot/zImage .
+#cp -f ./obj/KERNEL_OBJ/arch/arm/boot/zImage .
 

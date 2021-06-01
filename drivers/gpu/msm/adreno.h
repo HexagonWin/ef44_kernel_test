@@ -247,11 +247,11 @@ struct adreno_ft_data {
 #define KGSL_FT_PAGEFAULT_DEFAULT_POLICY     (KGSL_FT_PAGEFAULT_INT_ENABLE + \
 					KGSL_FT_PAGEFAULT_GPUHALT_ENABLE)
 
-	unsigned int rb_size;
-	unsigned int *bad_rb_buffer;
-	unsigned int bad_rb_size;
-	unsigned int last_valid_ctx_id;
-};
+unsigned int rb_size;
+unsigned int *bad_rb_buffer;
+unsigned int bad_rb_size;
+unsigned int last_valid_ctx_id;
+//};
 
 extern struct adreno_gpudev adreno_a2xx_gpudev;
 extern struct adreno_gpudev adreno_a3xx_gpudev;
@@ -496,28 +496,6 @@ static inline int adreno_add_read_cmds(struct kgsl_device *device,
 	*cmds++ = 0;
 
 	cmds += __adreno_add_idle_indirect_cmds(cmds, nop_gpuaddr);
-	return cmds - start;
-}
-
-/*
- * adreno_idle_cmds - Add pm4 packets for GPU idle
- * @adreno_dev - Pointer to device structure
- * @cmds - Pointer to memory where idle commands need to be added
- */
-static inline int adreno_add_idle_cmds(struct adreno_device *adreno_dev,
-							unsigned int *cmds)
-{
-	unsigned int *start = cmds;
-
-	*cmds++ = cp_type3_packet(CP_WAIT_FOR_IDLE, 1);
-	*cmds++ = 0x00000000;
-
-	if ((adreno_dev->gpurev == ADRENO_REV_A305) ||
-		(adreno_dev->gpurev == ADRENO_REV_A320)) {
-		*cmds++ = cp_type3_packet(CP_WAIT_FOR_ME, 1);
-		*cmds++ = 0x00000000;
-	}
-
 	return cmds - start;
 }
 

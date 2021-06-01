@@ -779,8 +779,6 @@ qup_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	int err;
 
 	pm_runtime_get_sync(dev->dev);
-	int exit_infinite_loop_cnt = 0;
-#endif
 	mutex_lock(&dev->mlock);
 
 	if (dev->suspended) {
@@ -1033,20 +1031,7 @@ timeout_err:
 					if (i % 2 == 0) {
 						if ((rd_status &
 							QUP_IN_NOT_EMPTY) == 0)
-#if defined(CONFIG_MACH_MSM8960_EF44S) || defined(CONFIG_MACH_MSM8960_MAGNUS)
-						{
-							if (dev->err_irq == GSBI9_QUP_IRQ)
-							{
-								exit_infinite_loop_cnt++;
-								dev_dbg(dev->dev, "sayuss GSBI # dev->err_irq = 0x%x\n",dev->err_irq);
-								if( EXIT_LOOP_VAL < exit_infinite_loop_cnt )
-									goto	out_err;
-							}
-							break; 
-						}
-#else
 							break;
-#endif
 						dval = readl_relaxed(dev->base +
 							QUP_IN_FIFO_BASE);
 						dev->msg->buf[dev->pos] =

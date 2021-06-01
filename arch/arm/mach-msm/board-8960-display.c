@@ -1369,7 +1369,6 @@ static struct platform_device mipi_dsi_toshiba_panel_device = {
 		.platform_data = &toshiba_pdata,
 	}
 };
-#endif
 
 #define FPGA_3D_GPIO_CONFIG_ADDR	0xB5
 static int dsi2lvds_gpio[4] = {

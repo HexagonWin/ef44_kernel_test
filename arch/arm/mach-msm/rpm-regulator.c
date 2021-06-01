@@ -368,24 +368,6 @@ static void tcxo_delayed_disable(void)
 
 /* Mutex lock needed for sleep-selectable regulators. */
 static DEFINE_MUTEX(rpm_sleep_sel_lock);
-		mutex_unlock(&tcxo_mutex);
-}
-
-static DECLARE_DELAYED_WORK(tcxo_disable_work, tcxo_delayed_disable_work);
-
-static void tcxo_delayed_disable(void)
-{
-	/*
-	 * The delay in jiffies has 1 added to it to ensure that at least
-	 * one jiffy takes place before the work is enqueued.  Without this,
-	 * the work would be scheduled to run in the very next jiffy which could
-	 * result in too little delay and TCXO being stuck on.
-	 */
-	if (tcxo_handle)
-		schedule_delayed_work(&tcxo_disable_work,
-				msecs_to_jiffies(TCXO_WARMUP_TIME_MS) + 1);
-}
-
 
 static int voltage_from_req(struct vreg *vreg)
 {
@@ -419,7 +401,6 @@ static int vreg_send_request(struct vreg *vreg, enum rpm_vreg_voter voter,
 	struct msm_rpm_iv_pair *prev_req;
 	int rc = 0, max_uV_vote = 0;
 	bool tcxo_enabled = false;
-	bool voltage_increased = false;
 	bool voltage_increased = false;
 	unsigned prev0, prev1;
 	int *min_uV_vote;
@@ -1035,7 +1016,6 @@ static int vreg_set(struct vreg *vreg, unsigned mask0, unsigned val0,
 	unsigned prev0 = 0, prev1 = 0;
 	bool tcxo_enabled = false;
 	bool voltage_increased = false;
-	bool voltage_increased = false;
 	int rc;
 
 	/*
@@ -1072,14 +1052,7 @@ static int vreg_set(struct vreg *vreg, unsigned mask0, unsigned val0,
 		tcxo_enabled = tcxo_enable();
 	}
 
-		voltage_increased = true;
-		tcxo_enabled = tcxo_enable();
-	}
-
-	if (voltage_increased && tcxo_workaround_noirq)
-		rc = msm_rpmrs_set_noirq(MSM_RPM_CTX_SET_0, vreg->req, cnt);
-	else
-		rc = msm_rpm_set(MSM_RPM_CTX_SET_0, vreg->req, cnt);
+	rc = msm_rpm_set(MSM_RPM_CTX_SET_0, vreg->req, cnt);
 
 	if (rc) {
 		vreg->req[0].value = prev0;
@@ -1099,13 +1072,9 @@ static int vreg_set(struct vreg *vreg, unsigned mask0, unsigned val0,
 	 * workaround is applicable for this regulator.
 	 */
 	if (voltage_increased) {
-		if (tcxo_enabled)
+		if (tcxo_enabled) 
 			tcxo_delayed_disable();
 		mutex_unlock(&tcxo_mutex);
-	}
-
-		else
-			mutex_unlock(&tcxo_mutex);
 	}
 
 	return rc;
@@ -1872,18 +1841,6 @@ static int __devinit rpm_vreg_probe(struct platform_device *pdev)
 		requires_tcxo_workaround = true;
 		wake_lock_init(&tcxo_wake_lock, WAKE_LOCK_SUSPEND,
 				"rpm_regulator_tcxo");
-	}
-
-	if (requires_tcxo_workaround && !tcxo_workaround_noirq) {
-		for (i = 0; i < platform_data->num_regulators; i++) {
-			vreg = rpm_vreg_get_vreg(
-					platform_data->init_data[i].id);
-			if (vreg && vreg->requires_cxo
-			    && platform_data->init_data[i].sleep_selectable) {
-				tcxo_workaround_noirq = true;
-				break;
-			}
-		}
 	}
 
 	/* Initialize all of the regulators listed in the platform data. */

@@ -330,19 +330,7 @@ err:
 
 void diagfwd_cntl_exit(void)
 {
-		"logging_mode: %d\n",
-		driver->logging_mode);
 	int i;
-		"count_hsic_write_pool: %d\n"
-		"diag_hsic_pool: %x\n"
-		"diag_hsic_write_pool: %x\n"
-		"write_len_mdm: %d\n"
-		"num_hsic_buf_tbl_entries: %d\n"
-		driver->count_hsic_write_pool,
-		(unsigned int)driver->diag_hsic_pool,
-		(unsigned int)driver->diag_hsic_write_pool,
-		driver->write_len_mdm,
-		driver->num_hsic_buf_tbl_entries,
 
 	for (i = 0; i < NUM_SMD_CONTROL_CHANNELS; i++)
 		diag_smd_destructor(&driver->smd_cntl[i]);

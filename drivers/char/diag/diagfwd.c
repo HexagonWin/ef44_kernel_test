@@ -60,8 +60,8 @@ void encode_rsp_and_send(int buf_length)
 {
 	struct diag_smd_info *data = &(driver->smd_data[MODEM_DATA]);
 	/* mimic the last entry as actual_last while creation */	\
-	*(int *)(msg_mask_tbl_ptr) = MSG_SSID_ ## XX ## _LAST;		\
-	msg_mask_tbl_ptr += 4;						\
+//	*(int *)(msg_mask_tbl_ptr) = MSG_SSID_ ## XX ## _LAST;		\
+//	msg_mask_tbl_ptr += 4;						\
 
 	if (buf_length > APPS_BUF_SIZE) {
 		pr_err("diag: In %s, invalid len %d, permissible len %d\n",
@@ -655,7 +655,7 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
     return err;
 }
 
-	} else if (driver->ch_wcnss && !buf &&
+/*	} else if (driver->ch_wcnss && !buf &&
 		(driver->logging_mode == MEMORY_DEVICE_MODE)) {
 		chk_logging_wakeup();
 	} else if (driver->chqdsp && !buf &&
@@ -669,8 +669,8 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 				*(uint32_t *)(actual_last_ptr) = end;
 			}
 			if (CHK_OVERFLOW(ptr_buffer_start, ptr, ptr_buffer_end,
-			memcpy(ptr, &(end), 4); /* create actual_last entry */
-			ptr += 4;
+			memcpy(ptr, &(end), 4); * create actual_last entry *
+			ptr += 4; */
 static void diag_update_pkt_buffer(unsigned char *buf)
 {
 	unsigned char *ptr = driver->pkt_buf;
@@ -755,9 +755,6 @@ void diag_send_data(struct diag_master_table entry, unsigned char *buf,
 			} else {
 				pr_alert("diag: In %s, incorrect channel: %d",
 					__func__, entry.client_id);
-		if ((updated_ssid_first >= first && updated_ssid_last <=
-			 actual_last) || (updated_ssid_first == ALL_SSID)) {
-								 first + 1;
 			}
 		}
 	}

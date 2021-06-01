@@ -733,12 +733,6 @@ arch_initcall(socinfo_init_sysdev);
 static void * __init setup_dummy_socinfo(void)
 {
 	if (machine_is_msm8960_cdp())
-	if (machine_is_msm8960_svlte() || machine_is_msm8960_csfb() ||	    
-	    machine_is_msm8960_ef44s() || machine_is_msm8960_vegapvw() ||
-	    machine_is_msm8960_magnus() || machine_is_msm8960_rumi3() ||
-	    machine_is_msm8960_sim() || machine_is_msm8960_cdp())
-#else
-#endif		
 		dummy_socinfo.id = 87;
 	else if (machine_is_msm9615_mtp() || machine_is_msm9615_cdp())
 		dummy_socinfo.id = 104;
@@ -941,10 +935,6 @@ const int read_msm_cpu_type(void)
 
 	case 0x510F06F0:
 		return MSM_CPU_8064;
-
-	case 0x511F06F1:
-	case 0x512F06F0:
-		return MSM_CPU_8974;
 
 	case 0x511F06F1:
 	case 0x512F06F0:

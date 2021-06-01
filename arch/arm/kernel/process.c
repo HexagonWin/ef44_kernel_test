@@ -487,7 +487,7 @@ void __show_regs(struct pt_regs *regs)
 	char symbuf[64];
 #endif
 
-	set_crash_store_enable();
+	//set_crash_store_enable();
 
 	printk("CPU: %d    %s  (%s %.*s)\n",
 		raw_smp_processor_id(), print_tainted(),

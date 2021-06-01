@@ -11,24 +11,25 @@
  */
 
 #include <linux/mfd/pm8xxx/batterydata-lib.h>
+#include <linux/mfd/pm8xxx/pm8921-bms.h>
 
 static struct single_row_lut fcc_temp = {
 	.x		= {-20, 0, 25, 40, 65},
 	.y		= {1492, 1492, 1493, 1483, 1502},
 	.cols	= 5
-	.x		= {-20, 0, 25, 40, 60},
-        .y		= {1701, 1701, 1703, 1703, 1707}, 
-	.cols	= 5
+//	.x		= {-20, 0, 25, 40, 60},
+//	.y		= {1701, 1701, 1703, 1703, 1707}, 
+//	.cols	= 5
 };
 static struct single_row_lut fcc_sf_std = {
 	.x		= {0},
 	.y		= {100},
 	.cols	= 1
 };
-static struct sf_lut rbatt_sf_std = { 
+/*static struct sf_lut rbatt_sf_std = { 
         .rows           = 28,
         .cols           = 5,
-        /* row_entries are temperature */
+         row_entries are temperature 
         .row_entries            = {-20, 0, 25, 40, 65},
         .percent        = {100, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1},
     	.sf		= {
@@ -108,14 +109,14 @@ static struct pc_temp_ocv_lut  pc_temp_ocv_std = {
 				{3386, 3412, 3392, 3359, 3308}, // 1
 				{3200, 3200, 3200, 3200, 3200} // 0
 	}
-};
+};*/
 struct pm8921_bms_battery_data  pantech_battery_std = {
-	.fcc			= 1680,
-	.fcc_temp_lut		= &fcc_temp_std,
-	.fcc_sf_lut		= &fcc_sf_std,
-	.pc_temp_ocv_lut	= &pc_temp_ocv_std,
-	.pc_sf_lut		= &pc_sf_std,
-	.rbatt_sf_lut		=&rbatt_sf_std,
+//	.fcc			= 1680,
+//	.fcc_temp_lut		= &fcc_temp_std,
+//	.fcc_sf_lut		= &fcc_sf_std,
+//	.pc_temp_ocv_lut	= &pc_temp_ocv_std,
+//	.pc_sf_lut		= &pc_sf_std,
+//	.rbatt_sf_lut		=&rbatt_sf_std,
 	.default_rbatt_mohm		=185,
 	.delta_rbatt_mohm	= 60,		
 };
@@ -224,7 +225,7 @@ struct pm8921_bms_battery_data  pantech_battery_ext = {
 	.default_rbatt_mohm		=125,
 	.delta_rbatt_mohm	= 60,		
 };
-#elif defined (CONFIG_MACH_MSM8960_EF45K) || defined (CONFIG_MACH_MSM8960_EF47S)
+#ifdef (CONFIG_MACH_MSM8960_EF45K) || defined (CONFIG_MACH_MSM8960_EF47S)
 //STANDARD BATTERY
 //20120117 p13782 : LG battery cal data 
 static struct single_row_lut fcc_temp_std = {
@@ -232,11 +233,7 @@ static struct single_row_lut fcc_temp_std = {
 	.y		= {1943, 1977, 1977, 1977, 1973},
 	.cols	= 5
 };
-static struct single_row_lut fcc_sf_std = {
-	.x		= {0},
-	.y		= {100},
-	.cols	= 1
-};
+
 static struct sf_lut rbatt_sf_std = { 
         .rows           = 28, 
 	.cols	= 5,
@@ -322,7 +319,7 @@ static struct pc_temp_ocv_lut  pc_temp_ocv_std = {
 };
 struct pm8921_bms_battery_data  pantech_battery_std = {
 	.fcc			= 2000,
-	.fcc_temp_lut		= &fcc_temp_std,
+//	.fcc_temp_lut		= &fcc_temp_std,
 	.fcc_sf_lut		= &fcc_sf_std,
 	.pc_temp_ocv_lut	= &pc_temp_ocv_std,
 	.pc_sf_lut		= &pc_sf_std,

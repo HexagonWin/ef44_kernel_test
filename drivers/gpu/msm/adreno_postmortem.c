@@ -700,8 +700,6 @@ int adreno_dump(struct kgsl_device *device, int manual)
 
 	int num_iommu_units = 0;
 
-	int num_iommu_units = 0;
-
 	mb();
 
 	if (device->pm_dump_enable) {
@@ -805,8 +803,7 @@ int adreno_dump(struct kgsl_device *device, int manual)
 	i = 0;
 	/* get the register mapped array in case we are using IOMMU */
 	num_iommu_units = kgsl_mmu_get_num_iommu_units(&device->mmu);
-							&reg_map_array);
-	reg_map = reg_map_array;
+
 	for (read_idx = 0; read_idx < num_item; ) {
 		uint32_t this_cmd = rb_copy[read_idx++];
 		if (adreno_cmd_is_ib(this_cmd)) {
@@ -840,8 +837,6 @@ int adreno_dump(struct kgsl_device *device, int manual)
 				cur_pt_base);
 		}
 	}
-	if (num_iommu_units)
-		kfree(reg_map_array);
 
 	/* Restore cur_pt_base back to the pt_base of
 	   the process in whose context the GPU hung */

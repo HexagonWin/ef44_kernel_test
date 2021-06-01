@@ -32,7 +32,11 @@
 #ifdef CONFIG_TOUCHSCREEN_CYTTSP_I2C
 #include <linux/cyttsp-qc.h>
 #include <linux/dma-contiguous.h>
+#endif
 //-- p11309
+
+//--hexagonwin 210601
+
 #include <linux/dma-mapping.h>
 #include <linux/platform_data/qcom_crypto_device.h>
 #ifndef CONFIG_WIFI_CONTROL_FUNC
@@ -1569,27 +1573,6 @@ static struct msm_bus_vectors qseecom_enable_dfab_sfpb_vectors[] = {
 	},
 };
 
-static struct msm_bus_vectors qseecom_enable_dfab_sfpb_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ib = (492 * 8) * 1000000UL,
-		.ab = (492 * 8) *  100000UL,
-	},
-	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_SPS,
-		.ib = (492 * 8) * 1000000UL,
-		.ab = (492 * 8) * 100000UL,
-	},
-	{
-		.src = MSM_BUS_MASTER_SPDM,
-		.dst = MSM_BUS_SLAVE_SPDM,
-		.ib = (64 * 8) * 1000000UL,
-		.ab = (64 * 8) *  100000UL,
-	},
-};
-
 static struct msm_bus_paths qseecom_hw_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(qseecom_clks_init_vectors),
@@ -1950,12 +1933,10 @@ static void __init msm8960_init_buses(void)
 #endif
 }
 
-#ifndef CONFIG_PANTECH_CAMERA
 static struct msm_spi_platform_data msm8960_qup_spi_gsbi1_pdata = {
 	.max_clock_speed = 15060000,
 	.infinite_mode	 = 0xFFC0,
 };
-#endif
 
 #ifdef CONFIG_USB_MSM_OTG_72K
 static struct msm_otg_platform_data msm_otg_pdata;
@@ -3144,7 +3125,7 @@ static struct msm_i2c_platform_data msm8960_i2c_qup_gsbi9_pdata = {
 #endif
 #endif
 
-#ifndef CONFIG_PANTECH_CAMERA
+//#ifndef CONFIG_PANTECH_CAMERA
 static struct ks8851_pdata spi_eth_pdata = {
 	.irq_gpio = KS8851_IRQ_GPIO,
 	.rst_gpio = KS8851_RST_GPIO,
@@ -3170,7 +3151,7 @@ static struct spi_board_info spi_board_info[] __initdata = {
 		.mode                   = SPI_MODE_0,
 	},
 };
-#endif
+//#endif
 
 static struct platform_device msm_device_saw_core0 = {
 	.name          = "saw-regulator",
@@ -3596,13 +3577,14 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm8960_device_qup_i2c_gsbi12,
 #endif
 	&msm_slim_ctrl,
-#if !defined(CONFIG_BRCM_BT) && !defined(CONFIG_WIFI_CONTROL_FUNC)
+#if defined(CONFIG_BRCM_BT) && !defined(CONFIG_WIFI_CONTROL_FUNC)
 	&msm_device_wcnss_wlan,
 #if defined(CONFIG_BT) && defined(CONFIG_BT_HCIUART_ATH3K)
 	&msm_bluesleep_device,
 	&msm_bt_power_device,
 	&msm_wlan_power_device,
 #endif	
+#endif
 
 #ifdef CONFIG_WIFI_CONTROL_FUNC
 	&wlan_device,
@@ -3909,7 +3891,7 @@ static struct msm_pm_boot_platform_data msm_pm_boot_pdata __initdata = {
 	.mode = MSM_PM_BOOT_CONFIG_TZ,
 };
 
-#ifdef CONFIG_I2C
+//#ifdef CONFIG_I2C
 #define I2C_SURF 1
 #define I2C_FFA  (1 << 1)
 #define I2C_RUMI (1 << 2)
@@ -4069,7 +4051,6 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
 #endif
 
 //-- p11309
-#if defined(CONFIG_PANTECH_PMIC_MAX17058)
 #if defined(CONFIG_MACH_MSM8960_EF44S) || defined(T_MAGNUS)
   {
     I2C_SURF | I2C_FFA | I2C_FLUID,
@@ -4087,15 +4068,7 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
     ARRAY_SIZE(max17058_i2c_boardinfo),
   },
 #endif
-#endif
-#if 0 // p13106 unused source
-	{
-		I2C_LIQUID,
-		MSM_8960_GSBI3_QUP_I2C_BUS_ID,
-		mxt_device_info,
-		ARRAY_SIZE(mxt_device_info),
-	},
-#endif
+
 	{
 		I2C_SURF | I2C_FFA | I2C_LIQUID,
 		MSM_8960_GSBI10_QUP_I2C_BUS_ID,
@@ -4283,9 +4256,6 @@ static void __init msm8960_cdp_init(void)
 			msm_otg_pdata.phy_init_seq =
 				liquid_v1_phy_init_seq;
 	}
-#if defined(FEATURE_HSUSB_SET_SIGNALING_PARAM)
-	msm_otg_pdata.phy_init_seq = pantech_phy_init_seq;
-#endif
 	android_usb_pdata.swfi_latency =
 		msm_rpmrs_levels[0].latency_us;
 	msm_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
@@ -4293,10 +4263,13 @@ static void __init msm8960_cdp_init(void)
 					machine_is_msm8960_liquid())
 		msm_device_hsic_host.dev.parent = &smsc_hub_device.dev;
 	msm8960_init_gpiomux();
-#ifndef CONFIG_PANTECH_CAMERA	
+
+//#ifndef CONFIG_PANTECH_CAMERA
 	msm8960_device_qup_spi_gsbi1.dev.platform_data =
 				&msm8960_qup_spi_gsbi1_pdata;
 	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
+//#endif
+
 	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE)
 		spi_register_board_info(spi_eth_info, ARRAY_SIZE(spi_eth_info));
 
