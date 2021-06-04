@@ -1,4 +1,5 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
+ * Copyright (C) 2012 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -24,6 +25,7 @@
 #include <linux/mfd/pmic8058.h>
 #include <linux/mfd/pmic8901.h>
 #include <linux/mfd/pm8xxx/misc.h>
+#include <linux/console.h>
 
 #include <asm/mach-types.h>
 
@@ -34,10 +36,6 @@
 #include <mach/scm.h>
 #include "msm_watchdog.h"
 #include "timer.h"
-
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-#include "sky_sys_reset.h"
-#endif
 
 #define WDT0_RST	0x38
 #define WDT0_EN		0x40
@@ -64,23 +62,42 @@ void *restart_reason;
 int pmic_reset_irq;
 static void __iomem *msm_tmr0_base;
 
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-#define NORMAL_RESET_MAGIC_NUM 0xbaabcddc
-#endif
 #ifdef CONFIG_MSM_DLOAD_MODE
 static int in_panic;
 static void *dload_mode_addr;
 
 /* Download mode master kill-switch */
 static int dload_set(const char *val, struct kernel_param *kp);
-static int download_mode = 1;
+static int download_mode;
 module_param_call(download_mode, dload_set, param_get_int,
 			&download_mode, 0644);
+
+extern void arm_machine_flush_console(void);
+#include <asm/proc-fns.h>
+#include <asm/cacheflush.h>
+#include <mach/system.h>
+#include <asm/system_misc.h>
+
+static void msm_panic_restart(char mode, const char *cmd)
+{
+	arm_machine_flush_console();
+	local_irq_disable();
+	local_fiq_disable();
+	flush_cache_all();
+	cpu_proc_fin();
+	flush_cache_all();
+	msm_restart(mode, cmd);
+	mdelay(1000);
+	printk(KERN_ERR "Reboot failed -- System halted\n");
+	while (1)
+		;
+}
 
 static int panic_prep_restart(struct notifier_block *this,
 			      unsigned long event, void *ptr)
 {
 	in_panic = 1;
+	arm_pm_restart = msm_panic_restart;
 	return NOTIFY_DONE;
 }
 
@@ -127,28 +144,6 @@ static int dload_set(const char *val, struct kernel_param *kp)
 }
 #else
 #define set_dload_mode(x) do {} while (0)
-#endif
-
-#if defined(CONFIG_PANTECH_PMIC_RESET_REASON)
-static void set_force_online_mode(void)
-{
-	if (dload_mode_addr) {
-		__raw_writel(0x34070757, dload_mode_addr);
-		__raw_writel(0x27530757,
-		       dload_mode_addr + sizeof(unsigned int));
-		mb();
-	}
-}
-
-static void set_force_offline_mode(void)
-{
-        if (dload_mode_addr) {
-                __raw_writel(0x27530757, dload_mode_addr);
-                __raw_writel(0x34070757,
-                       dload_mode_addr + sizeof(unsigned int));
-                mb();
-        }
-}
 #endif
 
 void msm_set_restart_mode(int mode)
@@ -223,10 +218,6 @@ static irqreturn_t resout_irq_handler(int irq, void *dev_id)
 		;
 	return IRQ_HANDLED;
 }
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-int sky_reset_reason=SYS_RESET_REASON_UNKNOWN;
-static int sky_backlight_off = 0;
-#endif
 
 #ifdef CONFIG_LGE_CRASH_HANDLER
 #define SUBSYS_NAME_MAX_LENGTH	40
@@ -289,16 +280,6 @@ void msm_restart(char mode, const char *cmd)
 	if (!download_mode)
 		set_dload_mode(0);
 #endif
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING 
-	sky_backlight_off = sky_sys_rst_is_backlight_off();
-#endif
-#if defined(CONFIG_PANTECH_PMIC)
-	if ( in_panic == 0 )       //chjeon20120213@LS1 chg
-		set_force_online_mode();
-
-        if (mode == 0xC9)
-                set_force_offline_mode();
-#endif
 
 	printk(KERN_NOTICE "Going down for restart now\n");
 
@@ -313,46 +294,27 @@ void msm_restart(char mode, const char *cmd)
 			unsigned long code;
 			code = simple_strtoul(cmd + 4, NULL, 16) & 0xff;
 			__raw_writel(0x6f656d00 | code, restart_reason);
-#ifdef CONFIG_PANTECH_FS_AUTO_REPAIR
-		} else if (!strncmp(cmd, "autorepair", 10)) {
-			__raw_writel(0x776655EA, restart_reason);
-#endif /* CONFIG_PANTECH_FS_AUTO_REPAIR */
 		} else {
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-			if(in_panic){//sky_reset_reason
-				if(sky_backlight_off == 0){
-					sky_reset_reason |=
-						SYS_RESET_BACKLIGHT_OFF_FLAG;
-				}
-				writel(sky_reset_reason, restart_reason);
-			}
-			else{
-				__raw_writel(0x77665501, restart_reason);
-			}
-	} else {
-		__raw_writel(0x77665501, restart_reason);
-#endif
-
-		}
-	}
-#if defined(CONFIG_PANTECH_ERR_CRASH_LOGGING) || defined(CONFIG_PANTECH_WDOG_WORKAROUND)
-	else
-	{
-		if(in_panic)
-		{
-			if(sky_backlight_off == 0)
-			{
-				sky_reset_reason |= SYS_RESET_BACKLIGHT_OFF_FLAG; 
-			}
-			writel(sky_reset_reason, restart_reason);
-		 }
-		else
-		{
 			__raw_writel(0x77665501, restart_reason);
 		}
+	} else {
+		__raw_writel(0x776655AA, restart_reason);
 	}
-        writel(NORMAL_RESET_MAGIC_NUM, restart_reason+4);
-#endif /* CONFIG_PANTECH_WDOG_WORKAROUND */
+#ifdef CONFIG_LGE_CRASH_HANDLER
+	if (in_panic == 1)
+		set_kernel_crash_magic_number();
+reset:
+#endif /* CONFIG_LGE_CRASH_HANDLER */
+
+	if (in_panic) {
+		__raw_writel(0xC0DEDEAD, restart_reason);
+
+		/* if we were in suspend when a panic triggering event occured
+		 * the console may still be suspended, meaning we will loose
+		 * critical kernel logs in last_kmsg. Telling console to panic.
+		 */
+		panic_console();
+	}
 
 	__raw_writel(0, msm_tmr0_base + WDT0_EN);
 	if (!(machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa())) {
@@ -371,29 +333,10 @@ void msm_restart(char mode, const char *cmd)
 	printk(KERN_ERR "Restarting has failed\n");
 }
 
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING 
-void pantech_set_restart_reason(void)
-{
-    sky_backlight_off = sky_sys_rst_is_backlight_off();
-
-    if(in_panic)
-    {//sky_reset_reason
-        if(sky_backlight_off == 0)
-        {
-            sky_reset_reason |= SYS_RESET_BACKLIGHT_OFF_FLAG; 
-        }
-        writel(sky_reset_reason, restart_reason);
-    }
-}
-#endif
-
 static int __init msm_pmic_restart_init(void)
 {
 	int rc;
 
-#if defined(CONFIG_PANTECH_ERR_CRASH_LOGGING)
-	__raw_writel(SYS_RESET_REASON_ABNORMAL, restart_reason);
-#endif
 	if (pmic_reset_irq != 0) {
 		rc = request_any_context_irq(pmic_reset_irq,
 					resout_irq_handler, IRQF_TRIGGER_HIGH,
@@ -413,6 +356,19 @@ static int __init msm_pmic_restart_init(void)
 
 late_initcall(msm_pmic_restart_init);
 
+static int msm_reboot_call(struct notifier_block *this,
+			   unsigned long code, void *_cmd)
+{
+	if (code == SYS_DOWN)
+		disable_nonboot_cpus();
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block msm_reboot_notifier = {
+	.notifier_call = msm_reboot_call,
+};
+
 static int __init msm_restart_init(void)
 {
 #ifdef CONFIG_MSM_DLOAD_MODE
@@ -424,6 +380,7 @@ static int __init msm_restart_init(void)
 #endif
 	set_dload_mode(download_mode);
 #endif
+	register_reboot_notifier(&msm_reboot_notifier);
 	msm_tmr0_base = msm_timer_get_timer0_base();
 	restart_reason = MSM_IMEM_BASE + RESTART_REASON_ADDR;
 	pm_power_off = msm_power_off;
@@ -431,3 +388,4 @@ static int __init msm_restart_init(void)
 	return 0;
 }
 early_initcall(msm_restart_init);
+

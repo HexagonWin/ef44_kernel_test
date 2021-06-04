@@ -117,7 +117,7 @@ static int ssr_count;
 static DEFINE_SPINLOCK(ssr_lock);
 
 static unsigned int mdm_debug_mask;
-int vddmin_gpios_sent;
+//int vddmin_gpios_sent;
 static struct mdm_ops *mdm_ops;
 
 static void mdm_device_list_add(struct mdm_device *mdev)
@@ -853,10 +853,7 @@ static int mdm_subsys_ramdumps(int want_dumps,
  * rebooting the device.
  */
 static int mdm_debug_mask_set(void *data, u64 val)
- * starts, there is no way to stop it without
- * rebooting the device.
- */
-static int mdm_debug_mask_set(void *data, u64 val)
+
 {
 	if (!vddmin_gpios_sent &&
 		(val & MDM_DEBUG_MASK_VDDMIN_SETUP)) {

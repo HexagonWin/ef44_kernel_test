@@ -3310,37 +3310,6 @@ unlock:
 	hci_dev_unlock(hdev);
 }
 
-static inline void hci_le_conn_update_complete_evt(struct hci_dev *hdev,
-							struct sk_buff *skb)
-{
-	struct hci_ev_le_conn_update_complete *ev = (void *) skb->data;
-	struct hci_conn *conn;
-
-	BT_DBG("%s status %d", hdev->name, ev->status);
-
-	hci_dev_lock(hdev);
-
-	conn = hci_conn_hash_lookup_handle(hdev,
-				__le16_to_cpu(ev->handle));
-	if (conn == NULL) {
-		BT_ERR("Unknown connection update");
-		goto unlock;
-	}
-
-	if (ev->status) {
-		BT_ERR("Connection update unsuccessful");
-		goto unlock;
-	}
-
-	mgmt_le_conn_params(hdev->id, &conn->dst,
-			__le16_to_cpu(ev->interval),
-			__le16_to_cpu(ev->latency),
-			__le16_to_cpu(ev->supervision_timeout));
-
-unlock:
-	hci_dev_unlock(hdev);
-}
-
 static inline void hci_le_ltk_request_evt(struct hci_dev *hdev,
 						struct sk_buff *skb)
 {

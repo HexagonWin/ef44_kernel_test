@@ -566,7 +566,7 @@ static int msm_pcm_playback_copy(struct snd_pcm_substream *substream, int a,
 			list_del(&buf_node->list);
 			spin_unlock_irqrestore(&prtd->dsp_lock, dsp_flags);
 			spin_unlock_irqrestore(&prtd->dsp_lock, dsp_flags);
-#endif
+
 			if (prtd->mode == MODE_PCM) {
 				ret = copy_from_user(&buf_node->frame.voc_pkt,
 							buf, count);
@@ -626,7 +626,7 @@ static int msm_pcm_capture_copy(struct snd_pcm_substream *substream,
 			list_del(&buf_node->list);
 			spin_unlock_irqrestore(&prtd->dsp_ul_lock, dsp_flags);
 			if (prtd->mode == MODE_PCM) {
-#endif
+
 				ret = copy_to_user(buf,
 						   &buf_node->frame.voc_pkt,
 						   buf_node->frame.len);
@@ -646,7 +646,7 @@ static int msm_pcm_capture_copy(struct snd_pcm_substream *substream,
 			}
 			spin_lock_irqsave(&prtd->dsp_ul_lock, dsp_flags);
 			spin_lock_irqsave(&prtd->dsp_ul_lock, dsp_flags);
-#endif
+
 			list_add_tail(&buf_node->list,
 						&prtd->free_out_queue);
 			spin_unlock_irqrestore(&prtd->dsp_ul_lock, dsp_flags);

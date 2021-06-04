@@ -118,8 +118,6 @@ static void event_handler(uint32_t opcode,
 			atomic_set(&prtd->pending_buffer, 1);
 			pr_debug("%s:lpa driver underrun\n", __func__);
 			break;
-				runtime->control->appl_ptr);
-			break;
 		}
 
 		pr_debug("%s:writing %d bytes of buffer[%d] to dsp 2\n",
@@ -179,7 +177,6 @@ static void event_handler(uint32_t opcode,
 				atomic_set(&prtd->pending_buffer, 1);
 				pr_debug("%s:lpa driver underrun\n",
 					 __func__);
-				runtime->control->appl_ptr);
 				break;
 			}
 			pr_debug("%s:writing %d bytes"

@@ -272,7 +272,7 @@ done:
 }
 
 /* Only for memory allocated in the voice driver */
-/* which includes voip & volte */
+/* which includes voip & volte */ /*
 static int voice_get_cal_kernel_addr(int16_t session_id, int cal_type,
 					uint32_t *kvaddr)
 {
@@ -303,9 +303,9 @@ static int voice_get_cal_kernel_addr(int16_t session_id, int cal_type,
 done:
 	return result;
 }
-
+*/
 /* Only for memory allocated in the voice driver */
-/* which includes voip & volte */
+/* which includes voip & volte */ /*
 static int voice_get_cal_phys_addr(int16_t session_id, int cal_type,
 					uint32_t *paddr)
 {
@@ -335,7 +335,7 @@ static int voice_get_cal_phys_addr(int16_t session_id, int cal_type,
 	*paddr = common.voice_cal[i].cal_data[cal_type].paddr;
 done:
 	return result;
-}
+}*/
 
 static int voice_apr_register(void)
 {

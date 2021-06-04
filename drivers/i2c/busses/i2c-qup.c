@@ -36,7 +36,6 @@
 #include <linux/gpio.h>
 #include <linux/of.h>
 #include <linux/of_i2c.h>
-#include <mach/socinfo.h>
 
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("0.2");
@@ -172,10 +171,6 @@ struct qup_i2c_dev {
 	void                         *complete;
 	int                          i2c_gpios[ARRAY_SIZE(i2c_rsrcs)];
 };
-
-#if defined(CONFIG_MACH_MSM8960_EF44S) || defined(CONFIG_MACH_MSM8960_MAGNUS)
-#define EXIT_LOOP_VAL	100
-#endif
 
 #ifdef DEBUG
 static void
@@ -1002,11 +997,12 @@ timeout_err:
 					dev_err(dev->dev,
 					"I2C slave addr:0x%x not connected\n",
 					dev->msg->addr);
-					dev->err = ENOTCONN;
+					ret = -ENOTCONN;
+					goto out_err;
 				} else if (dev->err < 0) {
 					dev_err(dev->dev,
 					"QUP data xfer error %d\n", dev->err);
-					ret = dev->err;
+					ret = -EIO;
 					goto out_err;
 				} else if (dev->err > 0) {
 					/*
@@ -1017,7 +1013,7 @@ timeout_err:
 					 */
 					qup_i2c_recover_bus_busy(dev);
 				}
-				ret = -dev->err;
+				ret = -EIO;
 				goto out_err;
 			}
 			if (dev->msg->flags & I2C_M_RD) {
@@ -1345,8 +1341,6 @@ blsp_core_init:
 	 */
 	if (dev->pdata->keep_ahb_clk_on)
 		clk_prepare_enable(dev->pclk);
-	if (dev->pdata->keep_ahb_clk_on)
-		clk_enable(dev->pclk);
 
 	ret = i2c_add_numbered_adapter(&dev->adapter);
 	if (ret) {
@@ -1417,7 +1411,6 @@ qup_i2c_remove(struct platform_device *pdev)
 	free_irq(dev->err_irq, dev);
 	i2c_del_adapter(&dev->adapter);
 	if (!dev->pdata->keep_ahb_clk_on) {
-	if (!dev->pdata->keep_ahb_clk_on) {
 		clk_put(dev->pclk);
 	}
 	clk_put(dev->clk);
@@ -1454,7 +1447,6 @@ static int i2c_qup_pm_suspend_runtime(struct device *device)
 	mutex_unlock(&dev->mlock);
 	if (dev->pwr_state != 0) {
 		qup_i2c_pwr_mgmt(dev, 0);
-	if (!dev->pdata->keep_ahb_clk_on)
 		qup_i2c_free_gpios(dev);
 	}
 	return 0;
@@ -1544,4 +1536,5 @@ static void __exit qup_i2c_exit_driver(void)
 	platform_driver_unregister(&qup_i2c_driver);
 }
 module_exit(qup_i2c_exit_driver);
+
 
