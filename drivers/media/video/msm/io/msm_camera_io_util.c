@@ -395,12 +395,8 @@ int msm_camera_request_gpio_table(struct msm_camera_sensor_info *sinfo,
 		sinfo->sensor_platform_info->gpio_conf;
 
 	if (!gpio_conf->gpio_no_mux) {
-#ifdef CONFIG_PANTECH_CAMERA
-		if (gpio_conf->cam_gpio_common_tbl == NULL) {
-#else
 		if (gpio_conf->cam_gpio_req_tbl == NULL ||
 			gpio_conf->cam_gpio_common_tbl == NULL) {
-#endif
 			pr_err("%s: NULL camera gpio table\n", __func__);
 			return -EFAULT;
 		}
@@ -436,7 +432,6 @@ int msm_camera_request_gpio_table(struct msm_camera_sensor_info *sinfo,
 				return rc;
 			}
 		}
-#endif		
 	} else {
 		gpio_ref_count--;
 		gpio_free_array(gpio_conf->cam_gpio_req_tbl,

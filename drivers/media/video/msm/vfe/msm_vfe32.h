@@ -1,5 +1,5 @@
-/* Copyright (c) 2011-2012, 2014-2015,
- * The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2013 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -15,6 +15,7 @@
 #define __MSM_VFE32_H__
 
 #include <linux/bitops.h>
+#include "msm_vfe_stats_buf.h"
 
 #define TRUE  1
 #define FALSE 0
@@ -163,11 +164,14 @@
 /* For DBPC bit 0 is set to zero and other's 1 */
 #define DBPC_MASK 0xFFFFFFFE
 
-/* For DBPC bit 1 is set to zero and other's 1 */
+/* For DBCC bit 1 is set to zero and other's 1 */
 #define DBCC_MASK 0xFFFFFFFD
 
+/* For ABCC bit 1 is set to zero and other's 1 */
+#define ABCC_MASK 0xFFFFFFFB
+
 /* For DBPC/ABF/DBCC/ABCC bits are set to 1 all others 0 */
-#define DEMOSAIC_MASK 0xF
+#define DEMOSAIC_MASK 0x10F
 
 /* For MCE enable bit 28 set to zero and other's 1 */
 #define MCE_EN_MASK 0xEFFFFFFF
@@ -200,24 +204,9 @@
 #define HFR_MODE_OFF 1
 #define VFE_FRAME_SKIP_PERIOD_MASK 0x0000001F /*bits 0 -4*/
 
-/* Move from msm_vfe32.c */
-#define VFE32_AXI_OFFSET 0x0050
-#define vfe32_get_ch_ping_addr(base, chn) \
-	(msm_camera_io_r((base) + 0x0050 + 0x18 * (chn)))
-#define vfe32_get_ch_pong_addr(base, chn) \
-	(msm_camera_io_r((base) + 0x0050 + 0x18 * (chn) + 4))
-#define vfe32_get_ch_addr(ping_pong, base, chn) \
-	((((ping_pong) & (1 << (chn))) == 0) ? \
-	(vfe32_get_ch_pong_addr((base), chn)) : \
-	(vfe32_get_ch_ping_addr((base), chn)))
-#define vfe32_put_ch_ping_addr(base, chn, addr) \
-	(msm_camera_io_w((addr), (base) + 0x0050 + 0x18 * (chn)))
-#define vfe32_put_ch_pong_addr(base, chn, addr) \
-	(msm_camera_io_w((addr), (base) + 0x0050 + 0x18 * (chn) + 4))
-#define vfe32_put_ch_addr(ping_pong, base, chn, addr) \
-	(((ping_pong) & (1 << (chn))) == 0 ?   \
-	vfe32_put_ch_pong_addr((base), (chn), (addr)) : \
-	vfe32_put_ch_ping_addr((base), (chn), (addr)))
+#define VFE_RELOAD_ALL_WRITE_MASTERS 0x00003FFF
+
+#define BUS_OVERFLOW_THRESHOLD  5
 
 enum VFE32_DMI_RAM_SEL {
 	NO_MEM_SELECTED          = 0,
@@ -250,6 +239,8 @@ enum vfe_output_state {
 	VFE_STATE_STARTED,
 	VFE_STATE_STOP_REQUESTED,
 	VFE_STATE_STOPPED,
+	VFE_STATE_HW_STOP_REQUESTED,
+	VFE_STATE_HW_STOPPED,
 };
 
 #define V32_CAMIF_OFF             0x000001E4
@@ -326,6 +317,9 @@ enum vfe_output_state {
 #define V33_PCA_ROLL_OFF_CFG_OFF2             0x000007A8
 #define V33_PCA_ROLL_OFF_TABLE_SIZE           (17 + (13*4))
 #define V33_PCA_ROLL_OFF_LUT_BANK_SEL_MASK    0x00010000
+
+#define V33_ABCC_LUT_TABLE_SIZE       512
+#define V33_ABCC_LUT_BANK_SEL_MASK    0x00000100
 
 #define V32_COLOR_COR_OFF 0x00000388
 #define V32_COLOR_COR_LEN 52
@@ -821,10 +815,7 @@ struct vfe32_output_ch {
 /* when normal case, don't want to block error status. */
 /* bit 0-21 are error irq bits */
 #define VFE32_IMASK_COMMON_ERROR_ONLY_1       0x00407F00
-#define VFE32_IMASK_VFE_ERROR_ONLY_1          0x003F80FF
-#define VFE32_IMASK_VFE_OVERFLOW_ERROR_ONLY_1 0x003FFF7E
-#define VFE32_IMASK_IMG_MAST_OVFL_MASK        0x00007F00
-#define VFE32_IMASK_IMG_MAST_OVFL_SHFT        8
+#define VFE32_IMASK_VFE_ERROR_ONLY_1          0x001F80FF
 #define VFE32_IMASK_CAMIF_ERROR               (0x00000001<<0)
 #define VFE32_IMASK_BHIST_OVWR                (0x00000001<<1)
 #define VFE32_IMASK_STATS_CS_OVWR             (0x00000001<<2)
@@ -922,6 +913,7 @@ struct vfe32_frame_extra {
 #define VFE_BUS_STATS_SKIN_BHIST_WR_PONG_ADDR    0x00000140
 #define VFE_BUS_STATS_SKIN_BHIST_UB_CFG          0x00000144
 #define VFE_CAMIF_COMMAND               0x000001E0
+#define VFE_CAMIF_FRAME_CFG		0x000001EC
 #define VFE_CAMIF_STATUS                0x00000204
 #define VFE_REG_UPDATE_CMD              0x00000260
 #define VFE_DEMUX_GAIN_0                0x00000288
@@ -954,7 +946,7 @@ struct vfe32_frame_extra {
 
 #define VFE33_DMI_DATA_HI               0x000005A0
 #define VFE33_DMI_DATA_LO               0x000005A4
-#define VFE_AXI_CFG_MASK                0xFFFFFFFF
+#define VFE_AXI_CFG_MASK                0x80000000
 
 #define VFE32_OUTPUT_MODE_PT			BIT(0)
 #define VFE32_OUTPUT_MODE_S			BIT(1)
@@ -971,22 +963,37 @@ struct vfe32_frame_extra {
 #define VFE32_OUTPUT_MODE_TERTIARY3		BIT(12)
 
 struct vfe_stats_control {
-	uint8_t  ackPending;
-	uint32_t nextFrameAddrBuf;
 	uint32_t droppedStatsFrameCount;
 	uint32_t bufToRender;
 };
+struct axi_ctrl_t;
+struct vfe32_ctrl_type;
+
+struct vfe_share_ctrl_t {
+	void __iomem *vfebase;
+	uint32_t register_total;
+
+	atomic_t vstate;
 	atomic_t handle_common_irq;
+	uint32_t vfeFrameId;
 	uint32_t rdi0FrameId;
 	uint32_t rdi1FrameId;
 	uint32_t rdi2FrameId;
+	uint32_t stats_comp;
 	spinlock_t  sd_notify_lock;
+	spinlock_t  stop_flag_lock;
+	int8_t stop_ack_pending;
+	enum vfe_output_state liveshot_state;
+	uint32_t vfe_capture_count;
 	int32_t rdi0_capture_count;
 	int32_t rdi1_capture_count;
 	int32_t rdi2_capture_count;
 	uint8_t update_counter;
+
 	uint32_t operation_mode;     /* streaming or snapshot */
 	uint32_t current_mode;
+	struct vfe32_output_path outpath;
+
 	uint16_t port_info;
 	uint8_t stop_immediately;
 	uint8_t sync_abort;
@@ -1002,6 +1009,9 @@ struct vfe_stats_control {
 
 	spinlock_t  update_ack_lock;
 	spinlock_t  start_ack_lock;
+
+	struct axi_ctrl_t *axi_ctrl;
+	struct vfe32_ctrl_type *vfe32_ctrl;
 	int8_t start_ack_pending;
 	int8_t update_ack_pending;
 	enum vfe_output_state recording_state;
@@ -1013,7 +1023,9 @@ struct vfe_stats_control {
 
 	uint8_t stream_error;
 	uint32_t rdi_comp;
-
+	uint32_t overflow_count;
+	uint8_t stop_issued;
+};
 
 struct axi_ctrl_t {
 	struct v4l2_subdev subdev;
@@ -1022,50 +1034,38 @@ struct axi_ctrl_t {
 	spinlock_t  tasklet_lock;
 	struct list_head tasklet_q;
 
-	void __iomem *vfebase;
 	void *syncdata;
 
 	struct resource	*vfemem;
 	struct resource *vfeio;
 	struct regulator *fs_vfe;
+#if defined(CONFIG_SONY_CAM_V4L2)
+	struct clk *vfe_clk[4];
+#else
 	struct clk *vfe_clk[3];
+#endif
 	struct tasklet_struct vfe32_tasklet;
+	struct vfe_share_ctrl_t *share_ctrl;
 	struct device *iommu_ctx_imgwr;
 	struct device *iommu_ctx_misc;
+	uint32_t simultaneous_sof_frame;
 };
 
 struct vfe32_ctrl_type {
-	uint16_t operation_mode;     /* streaming or snapshot */
-	struct vfe32_output_path outpath;
-
-	spinlock_t  stop_flag_lock;
 	spinlock_t  state_lock;
-
-	spinlock_t  aec_ack_lock;
-	spinlock_t  awb_ack_lock;
-	spinlock_t  af_ack_lock;
-	spinlock_t  ihist_ack_lock;
-	spinlock_t  rs_ack_lock;
-	spinlock_t  cs_ack_lock;
-	spinlock_t  comp_stats_ack_lock;
-
+	spinlock_t  stats_bufq_lock;
 	uint32_t extlen;
 	void *extdata;
 
 	int8_t vfe_sof_count_enable;
-	int8_t stop_ack_pending;
 	int8_t update_linear;
 	int8_t update_rolloff;
 	int8_t update_la;
 	int8_t update_gamma;
-	enum vfe_output_state liveshot_state;
+	int8_t update_abcc;
 
-	void __iomem *vfebase;
-	uint32_t register_total;
+	struct vfe_share_ctrl_t *share_ctrl;
 
-	uint32_t stats_comp;
-	atomic_t vstate;
-	uint32_t vfe_capture_count;
 	uint32_t sync_timer_repeat_count;
 	uint32_t sync_timer_state;
 	uint32_t sync_timer_number;
@@ -1082,11 +1082,12 @@ struct vfe32_ctrl_type {
 	/* v4l2 subdev */
 	struct v4l2_subdev subdev;
 	struct platform_device *pdev;
-	spinlock_t  sd_notify_lock;
 	uint32_t hfr_mode;
 	uint32_t frame_skip_cnt;
 	uint32_t frame_skip_pattern;
 	uint32_t snapshot_frame_cnt;
+	struct msm_stats_bufq_ctrl stats_ctrl;
+	struct msm_stats_ops stats_ops;
 
 	uint32_t simultaneous_sof_stat;
 };
@@ -1104,8 +1105,6 @@ struct vfe_cmd_stats_ack {
 };
 
 #define VFE_STATS_BUFFER_COUNT            3
-extern
-void vfe32_process_output_path_irq_rdi1_only(struct axi_ctrl_t *axi_ctrl);
 
 struct vfe_cmd_stats_buf {
 	uint32_t statsBuf[VFE_STATS_BUFFER_COUNT];

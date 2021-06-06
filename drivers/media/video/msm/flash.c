@@ -1,5 +1,5 @@
 
-/* Copyright (c) 2009-2012, 2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,19 +11,19 @@
  * GNU General Public License for more details.
  *
  */
-#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/leds-pmic8058.h>
 #include <linux/pwm.h>
 #include <linux/pmic8058-pwm.h>
 #include <linux/hrtimer.h>
-#include <linux/i2c.h>
+#include <linux/export.h>
 #include <linux/timer.h>
 #include <linux/workqueue.h>
 #include <mach/pmic.h>
 #include <mach/camera.h>
 #include <mach/gpio.h>
+#include "msm_camera_i2c.h"
 
 struct flash_work {
 	struct work_struct my_work;
@@ -36,53 +36,13 @@ static struct workqueue_struct *flash_wq;
 struct i2c_client *sx150x_client;
 struct timer_list timer_flash;
 static struct msm_camera_sensor_info *sensor_data;
+static struct msm_camera_i2c_client i2c_client;
 enum msm_cam_flash_stat{
 	MSM_CAM_FLASH_OFF,
 	MSM_CAM_FLASH_ON,
 };
 
 static struct i2c_client *sc628a_client;
-
-static int32_t flash_i2c_txdata(struct i2c_client *client,
-		unsigned char *txdata, int length)
-{
-	struct i2c_msg msg[] = {
-		{
-			.addr = client->addr >> 1,
-			.flags = 0,
-			.len = length,
-			.buf = txdata,
-		},
-	};
-	if (i2c_transfer(client->adapter, msg, 1) < 0) {
-		CDBG("flash_i2c_txdata faild 0x%x\n", client->addr >> 1);
-		return -EIO;
-	}
-
-	return 0;
-}
-
-static int32_t flash_i2c_write_b(struct i2c_client *client,
-	uint8_t baddr, uint8_t bdata)
-{
-	int32_t rc = -EFAULT;
-	unsigned char buf[2];
-	if (!client)
-		return  -ENOTSUPP;
-
-	memset(buf, 0, sizeof(buf));
-	buf[0] = baddr;
-	buf[1] = bdata;
-
-	rc = flash_i2c_txdata(client, buf, 2);
-	if (rc < 0) {
-		CDBG("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
-				baddr, bdata);
-	}
-	usleep_range(4000, 5000);
-
-	return rc;
-}
 
 static const struct i2c_device_id sc628a_i2c_id[] = {
 	{"sc628a", 0},
@@ -138,8 +98,10 @@ static int tps61310_i2c_probe(struct i2c_client *client,
 	}
 
 	tps61310_client = client;
-
-	rc = flash_i2c_write_b(tps61310_client, 0x01, 0x00);
+	i2c_client.client = tps61310_client;
+	i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+	rc = msm_camera_i2c_write(&i2c_client, 0x01, 0x00,
+		MSM_CAMERA_I2C_BYTE_DATA);
 	if (rc < 0) {
 		tps61310_client = NULL;
 		goto probe_failure;
@@ -506,13 +468,12 @@ error:
 					0x46, MSM_CAMERA_I2C_BYTE_DATA);
 				flash_wq = alloc_workqueue("my_queue",WQ_MEM_RECLAIM,1);
 				work = (struct flash_work *)kmalloc(sizeof(struct flash_work), GFP_KERNEL);
-				if (!work)
-					return -ENOMEM;
 				INIT_WORK( (struct work_struct *)work, flash_wq_function );
 				setup_timer(&flash_timer, flash_timer_callback, 0);
 				mod_timer(&flash_timer, jiffies + msecs_to_jiffies(10000));
 				timer_state = 1;
 			}
+		}
 		break;
 
 	case MSM_CAMERA_LED_HIGH:
@@ -532,6 +493,7 @@ error:
 				rc = msm_camera_i2c_write(&i2c_client, 0x01,
 					0x8B, MSM_CAMERA_I2C_BYTE_DATA);
 			}
+		}
 		break;
 
 	default:

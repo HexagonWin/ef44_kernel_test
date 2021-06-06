@@ -414,13 +414,31 @@ enum battery_type {
 struct pm8921_bms_platform_data {
 	struct pm8xxx_bms_core_data	bms_cdata;
 	enum battery_type		battery_type;
-	unsigned int			r_sense;
+	int				r_sense_uohm;
 	unsigned int			i_test;
-	unsigned int			v_failure;
-	unsigned int			calib_delay_ms;
+	unsigned int			v_cutoff;
 	unsigned int			max_voltage_uv;
 	unsigned int			rconn_mohm;
+	unsigned int			alarm_low_mv;
+	unsigned int			alarm_high_mv;
 	int				enable_fcc_learning;
+	int				min_fcc_learning_soc;
+	int				min_fcc_ocv_pc;
+	int				min_fcc_learning_samples;
+	int				shutdown_soc_valid_limit;
+	int				ignore_shutdown_soc;
+	int				adjust_soc_low_threshold;
+	int				chg_term_ua;
+	int				normal_voltage_calc_ms;
+	int				low_voltage_calc_ms;
+	int				disable_flat_portion_ocv;
+	int				ocv_dis_high_soc;
+	int				ocv_dis_low_soc;
+	int				low_voltage_detect;
+	int				vbatt_cutoff_retries;
+	int				high_ocv_correction_limit_uv;
+	int				low_ocv_correction_limit_uv;
+	int				hold_soc_est;
 };
 
 #if defined(CONFIG_PM8921_BMS) || defined(CONFIG_PM8921_BMS_MODULE)

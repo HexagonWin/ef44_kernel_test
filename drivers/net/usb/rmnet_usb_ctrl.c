@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2013, 2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -398,7 +398,9 @@ resubmit_int_urb:
 }
 
 int rmnet_usb_ctrl_start_rx(struct rmnet_ctrl_dev *dev)
+{
 	int	retval = 0;
+
 	usb_anchor_urb(dev->inturb, &dev->rx_submitted);
 	retval = usb_submit_urb(dev->inturb, GFP_KERNEL);
 	if (retval < 0) {
@@ -407,7 +409,10 @@ int rmnet_usb_ctrl_start_rx(struct rmnet_ctrl_dev *dev)
 			dev_err(dev->devicep,
 			"%s Intr submit %d\n", __func__, retval);
 	}
+
 	return retval;
+}
+
 static int rmnet_usb_ctrl_alloc_rx(struct rmnet_ctrl_dev *dev)
 {
 	dev->rcvurb = usb_alloc_urb(0, GFP_KERNEL);
@@ -1113,11 +1118,6 @@ int rmnet_usb_ctrl_init(int no_rmnet_devs, int no_rmnet_insts_per_dev)
 
 	num_devs = no_rmnet_devs;
 	insts_per_dev = no_rmnet_insts_per_dev;
-
-	if (no_rmnet_devs >= MAX_RMNET_DEVS) {
-		pr_err("Invalid device number.\n");
-		return -EINVAL;
-	}
 
 	ctrl_devs = kzalloc(num_devs * sizeof(*ctrl_devs), GFP_KERNEL);
 	if (!ctrl_devs)

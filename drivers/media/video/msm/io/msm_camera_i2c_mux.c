@@ -185,3 +185,4 @@ module_init(msm_camera_i2c_mux_init_module);
 module_exit(msm_camera_i2c_mux_exit_module);
 MODULE_DESCRIPTION("MSM Camera I2C mux driver");
 MODULE_LICENSE("GPL v2");
+

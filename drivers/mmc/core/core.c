@@ -308,75 +308,6 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 	host->ops->request(host, mrq);
 }
 
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-
-static void mmc_req_tout_timer_bkops(unsigned long data)
-{
-	struct mmc_host *host = (struct mmc_host *)data;
-
-	host->req_bkops_timer_expired = true;
-}
-
-static void mmc_req_tout_timer_bkops_block(unsigned long data)
-{
-	struct mmc_host *host = (struct mmc_host *)data;
-
-	host->req_bkops_block_timer_expired = true;
-}
-
-void mmc_bkops_block_timer_start(struct mmc_host *host, unsigned int timer_expires_msec){
-	spin_lock(&host->lock);
-	
-	host->req_bkops_block_timer_expired = false;
-
-	setup_timer(&host->req_bkops_block_timer, mmc_req_tout_timer_bkops_block,
-		(unsigned long)host);
-	
-	mod_timer(&host->req_bkops_block_timer,
-		(jiffies + msecs_to_jiffies(MMC_MAX_BKOPS_BLOCK_TIME)));
-	
-	spin_unlock(&host->lock);
-}
-EXPORT_SYMBOL(mmc_bkops_block_timer_start);
-
-
-void mmc_bkops_time_info_update(struct mmc_host *host){
-	s64		temp_time_ms;
-	
-	if(!host->bkops_log_en) 
-		return;
-	
-	temp_time_ms = ktime_to_ms(ktime_sub(ktime_get(), host->bkops_start_time));
-
-	spin_lock(&host->lock);
-	
-	if(temp_time_ms < host->bkops_diff_time[MMC_BKOPS_DIFF_MIN]
-			|| host->bkops_diff_time[MMC_BKOPS_DIFF_MIN] == 0){
-		host->bkops_diff_time[MMC_BKOPS_DIFF_MIN] = temp_time_ms;
-	}
-	
-	if(temp_time_ms > host->bkops_diff_time[MMC_BKOPS_DIFF_MAX]){
-		host->bkops_diff_time[MMC_BKOPS_DIFF_MAX] = temp_time_ms;
-	}
-	
-	host->bkops_diff_time[MMC_BKOPS_DIFF_SUM] += temp_time_ms;
-
-	spin_unlock(&host->lock);
-
-	pr_err("[JHM] --- BKOPS STOP  : f_stop %d, f_start %d, diff %lld, max %lld, min %lld, sum %lld\n" 
-			,host->bkops_force_stoped
-			,host->bkops_force_start
-			,temp_time_ms
-			,host->bkops_diff_time[MMC_BKOPS_DIFF_MAX]
-			,host->bkops_diff_time[MMC_BKOPS_DIFF_MIN]
-			,host->bkops_diff_time[MMC_BKOPS_DIFF_SUM]
-			);
-}
-EXPORT_SYMBOL(mmc_bkops_time_info_update);
-
-#endif
-
 /**
  * mmc_start_delayed_bkops() - Start a delayed work to check for
  *      the need of non urgent BKOPS
@@ -421,21 +352,8 @@ void mmc_start_bkops(struct mmc_card *card, bool from_exception)
 {
 	int err;
 
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX	
-	s64 	temp_time_ms = 0;
-	ktime_t switch_start;
-
-	unsigned long bkops_timer_value = MMC_MAX_BKOPS_TIME;
-#endif
-
 	BUG_ON(!card);
 	if (!card->ext_csd.bkops_en)
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-		|| (card->quirks & MMC_QUIRK_NO_BKOPS)
-#endif
-		)
 		return;
 
 	if ((card->bkops_info.cancel_delayed_work) && !from_exception) {
@@ -443,12 +361,6 @@ void mmc_start_bkops(struct mmc_card *card, bool from_exception)
 			 mmc_hostname(card->host), __func__);
 		card->bkops_info.cancel_delayed_work = false;
 		return;
-		mmc_card_clr_check_bkops(card);
-		spin_unlock_irqrestore(&card->host->lock, flags);
-		mmc_is_exception_event(card, EXT_CSD_URGENT_BKOPS);
-		mmc_card_set_need_bkops(card);
-	}else 
-#endif
 	}
 
 	/* In case of delayed bkops we might be in race with suspend. */
@@ -481,11 +393,6 @@ void mmc_start_bkops(struct mmc_card *card, bool from_exception)
 	 */
 	if (!mmc_card_need_bkops(card)) {
 		err = mmc_read_bkops_status(card);
-	}
-
-	card->host->bkops_started = false;
-#endif
-
 		if (err) {
 			pr_err("%s: %s: Failed to read bkops status: %d\n",
 			       mmc_hostname(card->host), __func__, err);
@@ -500,37 +407,6 @@ void mmc_start_bkops(struct mmc_card *card, bool from_exception)
 			card->ext_csd.raw_bkops_status,
 			from_exception);
 	}
-
-	setup_timer(&card->host->req_bkops_timer, mmc_req_tout_timer_bkops,
-				(unsigned long)card->host);
-
-	if(card->ext_csd.raw_bkops_status >= EXT_CSD_BKOPS_LEVEL_2){
-		if(card->host->req_bkops_timer_value == 0)
-			card->host->req_bkops_timer_value = bkops_timer_value;
-		else
-			bkops_timer_value = (3000 > card->host->req_bkops_timer_value) ? 3000 : card->host->req_bkops_timer_value;
-	}
-	
-	mod_timer(&card->host->req_bkops_timer,
-				(jiffies + msecs_to_jiffies(bkops_timer_value)));
-#endif
-
-
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-	if(card->host->bkops_log_en)
-	{
-		card->host->bkops_start_count++;
-		
-		pr_err("[JHM] +++ BKOPS START : f_start %d, level %u, sector %u, tout %lu, switch %lld\n", 
-			card->host->bkops_force_start,
-			card->ext_csd.raw_bkops_status,
-			card->sectors_changed,		
-			bkops_timer_value,
-			temp_time_ms
-			);
-	}
-#endif
 
 	/*
 	 * If the function was called due to exception, BKOPS will be performed
@@ -834,44 +710,6 @@ out:
 }
 EXPORT_SYMBOL(mmc_interrupt_hpi);
 
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-bool mmc_check_r1_state_prg(struct mmc_card *card, bool stop)
-{
-	bool result = false;
-	int err;
-	u32 status;
-
-	BUG_ON(!card);
-
-	mmc_claim_host(card->host);
-	err = mmc_send_status(card, &status);
-	if (err) {
-		pr_err("[JHM] %s:%s Get card status fail\n", mmc_hostname(card->host), __func__);
-		return result;
-	}
-
-	/*
-	 * If the card status is in PRG-state, we can send the HPI command.
-	 */
-	if (R1_CURRENT_STATE(status) == R1_STATE_PRG) {
-		if(stop && card->ext_csd.hpi_en){
-			mmc_send_hpi_cmd(card, &status);			
-		}
-		
-		result = true;
-
-		pr_debug("[JHM] %s : ON PRG, curr status = %d",__func__, R1_CURRENT_STATE(status));
-	}else
-		pr_debug("[JHM] %s : NOT PRG, curr status = %d",__func__, R1_CURRENT_STATE(status));
-	
-	mmc_release_host(card->host);
-	
-	return result;
-}
-EXPORT_SYMBOL(mmc_check_r1_state_prg);
-#endif
-
 /**
  *	mmc_wait_for_cmd - start a command and wait for completion
  *	@host: MMC host to start command
@@ -1011,13 +849,23 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 	mult = mmc_card_sd(card) ? 100 : 10;
 
 	/*
+	 * eMMC also uses a 100 multiplier because timeout is seen
+	 * with specific eMMC devices.
+	 */
+	if (mmc_card_mmc(card))
+		mult = 100;
+
+	/*
 	 * Scale up the multiplier (and therefore the timeout) by
 	 * the r2w factor for writes.
 	 */
 	if (data->flags & MMC_DATA_WRITE)
 		mult <<= card->csd.r2w_factor;
 
-	data->timeout_ns = card->csd.tacc_ns * mult;
+	if ((unsigned long long)card->csd.tacc_ns * mult > UINT_MAX)
+		data->timeout_ns = UINT_MAX;
+	else
+		data->timeout_ns = card->csd.tacc_ns * mult;
 	data->timeout_clks = card->csd.tacc_clks * mult;
 
 	/*
@@ -2196,13 +2044,6 @@ EXPORT_SYMBOL(mmc_can_erase);
 
 int mmc_can_trim(struct mmc_card *card)
 {
-/* 20121221 LS1-JHM modified : enabling DISCARD for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-		if(card->quirks & MMC_QUIRK_NO_TRIM){
-			return 0;
-		}
-#endif
-
 	if (card->ext_csd.sec_feature_support & EXT_CSD_SEC_GB_CL_EN)
 		return 1;
 	return 0;
@@ -2313,12 +2154,7 @@ unsigned int mmc_calc_max_discard(struct mmc_card *card)
 		return card->pref_erase;
 
 	max_discard = mmc_do_calc_max_discard(card, MMC_ERASE_ARG);
-	if (mmc_can_trim(card)
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-			|| mmc_can_discard(card)
-#endif
-		) {
+	if (mmc_can_trim(card)) {
 		max_trim = mmc_do_calc_max_discard(card, MMC_TRIM_ARG);
 		if (max_trim < max_discard)
 			max_discard = max_trim;
@@ -3062,6 +2898,8 @@ int mmc_card_awake(struct mmc_host *host)
 	if (host->bus_ops && !host->bus_dead && host->bus_ops->awake)
 		err = host->bus_ops->awake(host);
 
+	mmc_card_clr_sleep(host->card);
+
 	mmc_bus_put(host);
 
 	return err;
@@ -3077,9 +2915,11 @@ int mmc_card_sleep(struct mmc_host *host)
 
 	mmc_bus_get(host);
 
-	if (host->bus_ops && !host->bus_dead && host->bus_ops->sleep)
+	if (host->bus_ops && !host->bus_dead && host->bus_ops->sleep) {
 		err = host->bus_ops->sleep(host);
-
+		if (!err)
+			mmc_card_set_sleep(host->card);
+	}
 	mmc_bus_put(host);
 
 	return err;
@@ -3216,21 +3056,6 @@ int mmc_suspend_host(struct mmc_host *host)
 				err = mmc_stop_bkops(host->card);
 				if (err)
 					goto stop_bkops_err;
-					del_timer_sync(&host->req_bkops_timer);
-					host->req_bkops_timer_expired = false;
-
-					if(mmc_check_r1_state_prg(host->card, false)){
-						host->bkops_force_start = true;
-					}
-						
-					host->bkops_started = false;
-					host->bkops_force_stoped = false;
-					mmc_bkops_time_info_update(host);
-				}
-#else
-				if (mmc_card_doing_bkops(host->card))
-					mmc_interrupt_bkops(host->card);
-#endif
 				err = host->bus_ops->suspend(host);
 			}
 			if (!(host->card && mmc_card_sdio(host->card)))
@@ -3446,3 +3271,4 @@ subsys_initcall(mmc_init);
 module_exit(mmc_exit);
 
 MODULE_LICENSE("GPL");
+

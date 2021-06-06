@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, 2015 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2009-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -35,6 +35,7 @@
 #include <linux/syscalls.h>
 #include <linux/hrtimer.h>
 #include <linux/msm_ion.h>
+
 #include <mach/cpuidle.h>
 DEFINE_MUTEX(ctrl_cmd_lock);
 
@@ -2484,7 +2485,6 @@ static int msm_set_crop(struct msm_sync *sync, void __user *arg)
 		ERR_COPY_FROM_USER();
 		sync->croplen = 0;
 		kfree(sync->cropinfo);
-		sync->cropinfo = NULL;
 		mutex_unlock(&sync->lock);
 		return -EFAULT;
 	}
@@ -3963,7 +3963,7 @@ static int msm_sync_init(struct msm_sync *sync,
 	msm_queue_init(&sync->vpe_q, "vpe");
 
 	pm_qos_add_request(&sync->idle_pm_qos, PM_QOS_CPU_DMA_LATENCY,
-		PM_QOS_DEFAULT_VALUE);
+					   PM_QOS_DEFAULT_VALUE);
 
 	rc = msm_camio_probe_on(pdev);
 	if (rc < 0) {

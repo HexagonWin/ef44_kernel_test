@@ -379,20 +379,6 @@ struct mmc_host {
 		struct delayed_work work;
 		enum mmc_load	state;
 	} clk_scaling;
-
-	struct timer_list	req_bkops_block_timer;
-	bool				req_bkops_block_timer_expired;
-
-	ktime_t 		bkops_start_time;
-
-#define MMC_BKOPS_DIFF_MIN 0
-#define MMC_BKOPS_DIFF_MAX 1
-#define MMC_BKOPS_DIFF_SUM 2
-	s64 			bkops_diff_time[3];
-
-	bool			bkops_log_en;
-#endif
-
 	unsigned long		private[0] ____cacheline_aligned;
 };
 
@@ -540,4 +526,6 @@ static inline unsigned int mmc_host_clk_rate(struct mmc_host *host)
 {
 	return host->ios.clock;
 }
+#endif
 #endif /* LINUX_MMC_HOST_H */
+

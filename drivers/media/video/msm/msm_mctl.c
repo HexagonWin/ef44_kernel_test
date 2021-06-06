@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, 2015 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -20,6 +20,7 @@
 #include <linux/videodev2.h>
 #include <linux/proc_fs.h>
 #include <linux/vmalloc.h>
+#include <linux/wakelock.h>
 #include <linux/avtimer.h>
 
 #include <media/v4l2-dev.h>
@@ -28,9 +29,8 @@
 
 #include <linux/android_pmem.h>
 
-#include <mach/cpuidle.h>
-
 #include "msm.h"
+#include "msm_cam_server.h"
 #include "msm_csid.h"
 #include "msm_csic.h"
 #include "msm_csiphy.h"
@@ -138,14 +138,6 @@ static struct msm_isp_color_fmt msm_isp_formats[] = {
 	.fourcc	 = V4L2_PIX_FMT_YUYV,
 	.pxlcode	= V4L2_MBUS_FMT_YUYV8_2X8, /* YUV sensor */
 	.colorspace = V4L2_COLORSPACE_JPEG,
-	},
-	{
-	.name	   = "UYVY",
-	.depth	  = 16,
-	.bitsperpxl = 16,
-	.fourcc	 = V4L2_PIX_FMT_UYVY,
-	.pxlcode	= V4L2_MBUS_FMT_UYVY8_2X8, /* YUV sensor */
-	.colorspace = V4L2_COLORSPACE_SMPTE170M,
 	},
 	{
 	.name	   = "SAEC",
@@ -262,13 +254,8 @@ static int msm_mctl_add_intf_to_mctl_map(
 
 	mctl_handle = msm_cam_find_handle_from_mctl_ptr(p_mctl);
 	if (mctl_handle == 0) {
-		pr_err("%s Error in finding handle from mctl_ptr",
-				__func__);
-		return -EFAULT;
-	}
-	if (intf_map->num_entries > MSM_V4L2_EXT_CAPTURE_MODE_MAX) {
-		pr_err("%s Error num_entries exceeds max %d",
-				__func__, intf_map->num_entries);
+		pr_err("%s Error in finding handle from mctl_ptr, rc = %d",
+			__func__, rc);
 		return -EFAULT;
 	}
 	for (i = 0; i < intf_map->num_entries; i++) {
@@ -595,8 +582,7 @@ static int msm_mctl_open(struct msm_cam_media_controller *p_mctl,
 	/* open sub devices - once only*/
 	if (!p_mctl->opencnt) {
 		struct msm_sensor_csi_info csi_info;
-		pm_qos_update_request(&p_mctl->idle_pm_qos,
-			msm_cpuidle_get_deep_idle_latency());
+		wake_lock(&p_mctl->wake_lock);
 
 		csid_core = camdev->csid_core;
 		rc = msm_mctl_find_sensor_subdevs(p_mctl, csid_core);
@@ -622,28 +608,6 @@ static int msm_mctl_open(struct msm_cam_media_controller *p_mctl,
 		}
 
 		if (p_mctl->csic_sdev)
-#else	// CONFIG_PANTECH_CAMERA : isj_0205 test refer from ICS Case:00871739  : change order between csid_sdev and csiphy_sdev
-		if (p_mctl->csid_sdev) {
-			rc = v4l2_subdev_call(p_mctl->csid_sdev, core, ioctl,
-				VIDIOC_MSM_CSID_INIT, &csid_version);
-			if (rc < 0) {
-				pr_err("%s: csid initialization failed %d\n",
-					__func__, rc);
-				goto csid_init_failed;
-			}
-			csi_info.is_csic = 0;
-		}
-
-		if (p_mctl->csiphy_sdev) {
-			rc = v4l2_subdev_call(p_mctl->csiphy_sdev, core, ioctl,
-				VIDIOC_MSM_CSIPHY_INIT, NULL);
-			if (rc < 0) {
-				pr_err("%s: csiphy initialization failed %d\n",
-					__func__, rc);
-				goto csiphy_init_failed;
-			}
-		}		
-#endif
 			csi_info.is_csic = 1;
 		else
 			csi_info.is_csic = 0;
@@ -659,6 +623,7 @@ static int msm_mctl_open(struct msm_cam_media_controller *p_mctl,
 			PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
 		pm_qos_update_request(&p_mctl->pm_qos_req_list,
 			MSM_V4L2_SWFI_LATENCY);
+
 		p_mctl->apps_id = apps_id;
 		p_mctl->opencnt++;
 	} else {
@@ -673,7 +638,7 @@ act_power_up_failed:
 		pr_err("%s: sensor powerdown failed: %d\n", __func__, rc);
 sensor_sdev_failed:
 register_sdev_failed:
-	pm_qos_update_request(&p_mctl->idle_pm_qos, PM_QOS_DEFAULT_VALUE);
+	wake_unlock(&p_mctl->wake_lock);
 	mutex_unlock(&p_mctl->lock);
 	return rc;
 }
@@ -710,22 +675,15 @@ static void msm_mctl_release(struct msm_cam_media_controller *p_mctl)
 				sinfo->sensor_platform_info->csi_lane_params);
 		}
 
-#if 0	// JB Base SRC
 		if (p_mctl->csid_sdev) {
 			v4l2_subdev_call(p_mctl->csid_sdev, core, ioctl,
 				VIDIOC_MSM_CSID_RELEASE, NULL);
 		}
 
-#else	// CONFIG_PANTECH_CAMERA : isj_0205 test refer from ICS Case:00871739  : change order between csid_sdev and csiphy_sdev
-	if (p_mctl->csiphy_sdev) {
-		v4l2_subdev_call(p_mctl->csiphy_sdev, core, ioctl,
-			VIDIOC_MSM_CSIPHY_RELEASE, NULL);
-	}
 		if (p_mctl->act_sdev) {
 			v4l2_subdev_call(p_mctl->act_sdev, core, s_power, 0);
 			p_mctl->act_sdev = NULL;
 		}
-#endif
 
 		v4l2_subdev_call(p_mctl->sensor_sdev, core, s_power, 0);
 
@@ -740,10 +698,6 @@ static void msm_mctl_release(struct msm_cam_media_controller *p_mctl)
 		wake_unlock(&p_mctl->wake_lock);
 	}
 	mutex_unlock(&p_mctl->lock);
-
-	v4l2_subdev_call(p_mctl->sensor_sdev, core, s_power, 0);
-
-	pm_qos_update_request(&p_mctl->idle_pm_qos, PM_QOS_DEFAULT_VALUE);
 }
 
 int msm_mctl_init_user_formats(struct msm_cam_v4l2_device *pcam)
@@ -814,20 +768,19 @@ int msm_mctl_init(struct msm_cam_v4l2_device *pcam)
 		pr_err("%s: param is NULL", __func__);
 		return -EINVAL;
 	}
-	pcam->mctl_handle = msm_camera_get_mctl_handle();
+	pcam->mctl_handle = msm_cam_server_get_mctl_handle();
 	if (pcam->mctl_handle == 0) {
 		pr_err("%s: cannot get mctl handle", __func__);
 		return -EINVAL;
 	}
 
-	pmctl = msm_camera_get_mctl(pcam->mctl_handle);
+	pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
 	if (!pmctl) {
 		pr_err("%s: invalid mctl controller", __func__);
 		return -EINVAL;
 	}
 
-	pm_qos_add_request(&pmctl->idle_pm_qos, PM_QOS_CPU_DMA_LATENCY,
-		PM_QOS_DEFAULT_VALUE);
+	wake_lock_init(&pmctl->wake_lock, WAKE_LOCK_SUSPEND, "msm_camera");
 	mutex_init(&pmctl->lock);
 	pmctl->opencnt = 0;
 
@@ -866,16 +819,17 @@ int msm_mctl_free(struct msm_cam_v4l2_device *pcam)
 	struct msm_cam_media_controller *pmctl = NULL;
 	D("%s\n", __func__);
 
-	pmctl = msm_camera_get_mctl(pcam->mctl_handle);
+	pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
 	if (!pmctl) {
 		pr_err("%s: invalid mctl controller", __func__);
 		return -EINVAL;
 	}
 
 	mutex_destroy(&pmctl->lock);
-	pm_qos_remove_request(&pmctl->idle_pm_qos);
+	wake_lock_destroy(&pmctl->wake_lock);
 	/*clear out mctl fields*/
 	memset(pmctl, 0, sizeof(struct msm_cam_media_controller));
+	msm_cam_server_free_mctl(pcam->mctl_handle);
 	return rc;
 }
 
@@ -936,7 +890,7 @@ static int msm_mctl_dev_open(struct file *f)
 		return rc;
 	}
 
-	pmctl = msm_camera_get_mctl(pcam->mctl_handle);
+	pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
 	if (!pmctl) {
 		pr_err("%s mctl NULL!\n", __func__);
 		return rc;
@@ -1009,7 +963,7 @@ static int msm_mctl_dev_close(struct file *f)
 		return -EINVAL;
 	}
 
-	pmctl = msm_camera_get_mctl(pcam->mctl_handle);
+	pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
 	mutex_lock(&pcam->mctl_node.dev_lock);
 	mutex_lock(&pcam_inst->inst_lock);
 	D("%s : active %d ", __func__, pcam->mctl_node.active);
@@ -1173,6 +1127,7 @@ static int msm_mctl_v4l2_reqbufs(struct file *f, void *pctx,
 		struct msm_cam_v4l2_dev_inst, eventHandle);
 	D("%s\n", __func__);
 	WARN_ON(pctx != f->private_data);
+
 	mutex_lock(&pcam_inst->inst_lock);
 	if (!pcam_inst->vbqueue_initialized && pb->count) {
 		pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
@@ -1329,6 +1284,7 @@ static int msm_mctl_v4l2_dqbuf(struct file *f, void *pctx,
 		mutex_unlock(&pcam_inst->inst_lock);
 		return -EACCES;
 	}
+
 	rc = vb2_dqbuf(&pcam_inst->vid_bufq, pb,  f->f_flags & O_NONBLOCK);
 	D("%s, videobuf_dqbuf returns %d\n", __func__, rc);
 

@@ -100,7 +100,7 @@ static struct gpiomux_setting cam_settings[] = {
 	},
 
 };
-
+/*
 static struct msm_gpiomux_config msm8960_cdp_flash_configs[] = {
 	{
 		.gpio = 3,
@@ -109,7 +109,7 @@ static struct msm_gpiomux_config msm8960_cdp_flash_configs[] = {
 			[GPIOMUX_SUSPENDED] = &cam_settings[0],
 		},
 	},
-};
+}; */
 
 #if !defined(CONFIG_MACH_MSM8960_STARQ) /* LCD Backlight for STARQ ... p13447 */
 #ifndef CONFIG_PANTECH_CAMERA
@@ -427,7 +427,7 @@ static struct camera_vreg_t msm_8960_front_cam_vreg[] = {
 	{"cam_vdig", REG_LDO, 1200000, 1200000, 105000},
 #endif
 };
-
+/*
 #ifndef CONFIG_PANTECH_CAMERA
 static struct gpio msm8960_front_cam_gpio[] = {
 	{76, GPIOF_DIR_OUT, "CAM_RESET"},
@@ -446,7 +446,7 @@ static struct msm_gpio_set_tbl msm8960_back_cam_gpio_set_tbl[] = {
 	{107, GPIOF_OUT_INIT_LOW, 1000},
 	{107, GPIOF_OUT_INIT_HIGH, 4000},
 };
-#endif
+#endif*/
 //End add by hexagonwin
 
 static struct msm_bus_vectors cam_init_vectors[] = {
@@ -1166,42 +1166,26 @@ void __init msm8960_init_cam(void)
 	if (machine_is_msm8960_cdp()) {
 		msm_gpiomux_install(msm8960_cdp_flash_configs,
 			ARRAY_SIZE(msm8960_cdp_flash_configs));
-    }
-}
 
 #ifdef CONFIG_PANTECH_CAMERA_FLASH
     i2c_register_board_info(MSM_8960_GSBI1_QUP_I2C_BUS_ID, msm_i2c_camera_flash_device,
              ARRAY_SIZE(msm_i2c_camera_flash_device));
 #endif    
-#ifndef CONFIG_PANTECH_CAMERA	
-#if !defined(CONFIG_MACH_MSM8960_STARQ) /* LCD Backlight for STARQ ... p13447 */
+    }
 
-#ifdef CONFIG_MSM_CAMERA_FLASH
-		msm_flash_src._fsrc.ext_driver_src.led_en =
-			GPIO_CAM_GP_LED_EN1;
-		msm_flash_src._fsrc.ext_driver_src.led_flash_en =
-			GPIO_CAM_GP_LED_EN2;
-		#if defined(CONFIG_I2C) && (defined(CONFIG_GPIO_SX150X) || \
-		defined(CONFIG_GPIO_SX150X_MODULE))
-		msm_flash_src._fsrc.ext_driver_src.expander_info =
-			cam_expander_info;
-		#endif
-#endif
-	}
-#ifndef CONFIG_PANTECH_CAMERA
 	if (machine_is_msm8960_liquid()) {
 		struct msm_camera_sensor_info *s_info;
-		s_info = &msm_camera_sensor_imx074_data;
+//		s_info = &msm_camera_sensor_imx074_data;
 		s_info->sensor_platform_info->mount_angle = 180;
-		s_info = &msm_camera_sensor_ov2720_data;
+//		s_info = &msm_camera_sensor_ov2720_data;
 		s_info->sensor_platform_info->ext_power_ctrl =
 			msm_camera_8960_ext_power_ctrl;
 	}
+
 	if (machine_is_msm8960_fluid()) {
 		msm_camera_sensor_imx091_data.sensor_platform_info->
 			mount_angle = 270;
 	}
-#endif
 
 	platform_device_register(&msm_camera_server);
 	platform_device_register(&msm8960_device_csiphy0);
@@ -1274,6 +1258,4 @@ struct msm_camera_board_info msm8960_camera_board_info = {
 	.board_info = msm8960_camera_i2c_boardinfo,
 	.num_i2c_board_info = ARRAY_SIZE(msm8960_camera_i2c_boardinfo),
 };
-#endif
-#endif
 #endif

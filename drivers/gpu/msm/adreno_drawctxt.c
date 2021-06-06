@@ -750,4 +750,3 @@ int adreno_drawctxt_switch(struct adreno_device *adreno_dev,
 	adreno_dev->drawctxt_active = drawctxt;
 	return 0;
 }
-

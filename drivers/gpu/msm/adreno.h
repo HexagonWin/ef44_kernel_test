@@ -454,6 +454,8 @@ extern const unsigned int a4xx_registers_count;
 
 extern unsigned int ft_detect_regs[];
 
+int adreno_coresight_enable(struct coresight_device *csdev);
+void adreno_coresight_disable(struct coresight_device *csdev);
 void adreno_coresight_remove(struct platform_device *pdev);
 int adreno_coresight_init(struct platform_device *pdev);
 
@@ -624,14 +626,10 @@ static inline int adreno_rb_ctxtswitch(unsigned int *cmd)
 static inline int adreno_context_timestamp(struct kgsl_context *k_ctxt,
 		struct adreno_ringbuffer *rb)
 {
-	struct adreno_context *a_ctxt = NULL;
-
-//	if (k_ctxt)
-//		a_ctxt = k_ctxt->devctxt;
-
-	if (a_ctxt && a_ctxt->flags & CTXT_FLAGS_PER_CONTEXT_TS)
+	if (k_ctxt) {
+		struct adreno_context *a_ctxt = ADRENO_CONTEXT(k_ctxt);
 		return a_ctxt->timestamp;
-
+	}
 	return rb->global_ts;
 }
 

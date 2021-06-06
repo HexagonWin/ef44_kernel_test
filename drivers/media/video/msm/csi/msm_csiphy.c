@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, 2014-2015 The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -21,13 +21,10 @@
 #include "msm_csiphy.h"
 #include "msm.h"
 #include "msm_csiphy_hwreg.h"
-#include <mach/socinfo.h>
 #define DBG_CSIPHY 0
 
 #define V4L2_IDENT_CSIPHY                        50003
 #define CSIPHY_VERSION_V3                        0x10
-
-struct csiphy_device *lsh_csiphy_dev[MAX_CSIPHY];
 
 int msm_csiphy_lane_config(struct csiphy_device *csiphy_dev,
 	struct msm_camera_csiphy_params *csiphy_params)
@@ -127,10 +124,6 @@ static irqreturn_t msm_csiphy_irq(int irq_num, void *data)
 			csiphy_dev->base +
 			MIPI_CSIPHY_INTERRUPT_CLEAR0_ADDR + 0x4*i);
 	}
-
-	v4l2_subdev_notify(&csiphy_dev->subdev,
-			NOTIFY_CSIPHY_ERROR, (void *)NULL);
-
 	return IRQ_HANDLED;
 }
 
@@ -170,18 +163,16 @@ static int msm_csiphy_init(struct csiphy_device *csiphy_dev)
 		return rc;
 	}
 
-	pr_debug("%s - %d", __func__, csiphy_dev->ref_count+1);
-
-	if (csiphy_dev->ref_count++) {
-		CDBG("%s csiphy refcount = %d\n", __func__,
-			csiphy_dev->ref_count);
-		return rc;
-	}
-
 	if (csiphy_dev->csiphy_state == CSIPHY_POWER_UP) {
 		pr_err("%s: csiphy invalid state %d\n", __func__,
 			csiphy_dev->csiphy_state);
 		rc = -EINVAL;
+		return rc;
+	}
+
+	if (csiphy_dev->ref_count++) {
+		CDBG("%s csiphy refcount = %d\n", __func__,
+			csiphy_dev->ref_count);
 		return rc;
 	}
 
@@ -231,25 +222,10 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 	csi_lane_params = (struct msm_camera_csi_lane_params *)arg;
 	csi_lane_mask = csi_lane_params->csi_lane_mask;
 
-	pr_debug("%s - %d", __func__, csiphy_dev->ref_count-1);
-
-	if (!csiphy_dev) {
-		pr_err("%s csiphy dev NULL\n", __func__);
+	if (!csiphy_dev || !csiphy_dev->ref_count) {
+		pr_err("%s csiphy dev NULL / ref_count ZERO\n", __func__);
 		return 0;
 	}
-
-	if (csiphy_dev->ref_count) {
-		if (--csiphy_dev->ref_count)
-			return 0;
-	} else {
-		pr_err("%s refcnt already 0!", __func__);
-	}
-
-	if (csiphy_dev->reserved_adp) {
-		pr_err("%s - csiphy reserved!", __func__);
-		return 0;
-	}
-
 
 	if (csiphy_dev->csiphy_state != CSIPHY_POWER_UP) {
 		pr_err("%s: csiphy invalid state %d\n", __func__,
@@ -281,6 +257,12 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 		}
 	}
 
+	if (--csiphy_dev->ref_count) {
+		CDBG("%s csiphy refcount = %d\n", __func__,
+			csiphy_dev->ref_count);
+		return 0;
+	}
+
 	msm_camera_io_w(0x0, csiphy_dev->base + MIPI_CSIPHY_LNCK_CFG2_ADDR);
 	msm_camera_io_w(0x0, csiphy_dev->base + MIPI_CSIPHY_GLBL_PWR_CFG_ADDR);
 
@@ -300,23 +282,6 @@ static int msm_csiphy_release(struct csiphy_device *csiphy_dev, void *arg)
 	csiphy_dev->base = NULL;
 	csiphy_dev->csiphy_state = CSIPHY_POWER_DOWN;
 	return 0;
-}
-
-int msm_csiphy_init_adp(struct csiphy_device *csiphy_dev)
-{
-	int rc;
-	csiphy_dev->reserved_adp = true;
-	rc = msm_csiphy_init(csiphy_dev);
-	if (rc)
-		csiphy_dev->reserved_adp = false;
-
-	return rc;
-}
-
-int msm_csiphy_release_adp(struct csiphy_device *csiphy_dev, void *arg)
-{
-	csiphy_dev->reserved_adp = false;
-	return msm_csiphy_release(csiphy_dev, arg);
 }
 
 static long msm_csiphy_cmd(struct csiphy_device *csiphy_dev, void *arg)
@@ -339,11 +304,6 @@ static long msm_csiphy_cmd(struct csiphy_device *csiphy_dev, void *arg)
 		rc = msm_csiphy_init(csiphy_dev);
 		break;
 	case CSIPHY_CFG:
-		if (csiphy_dev->reserved_adp) {
-			pr_err("%s - CSIPHY reserved!", __func__);
-			return 0;
-		}
-
 		if (copy_from_user(&csiphy_params,
 			(void *)cdata.csiphy_params,
 			sizeof(struct msm_camera_csiphy_params))) {
@@ -396,6 +356,8 @@ static int __devinit csiphy_probe(struct platform_device *pdev)
 {
 	struct csiphy_device *new_csiphy_dev;
 	int rc = 0;
+	struct msm_cam_subdev_info sd_info;
+
 	new_csiphy_dev = kzalloc(sizeof(struct csiphy_device), GFP_KERNEL);
 	if (!new_csiphy_dev) {
 		pr_err("%s: no enough memory\n", __func__);
@@ -451,8 +413,11 @@ static int __devinit csiphy_probe(struct platform_device *pdev)
 	disable_irq(new_csiphy_dev->irq->start);
 
 	new_csiphy_dev->pdev = pdev;
+	sd_info.sdev_type = CSIPHY_DEV;
+	sd_info.sd_index = pdev->id;
+	sd_info.irq_num = new_csiphy_dev->irq->start;
 	msm_cam_register_subdev_node(
-		&new_csiphy_dev->subdev, CSIPHY_DEV, pdev->id);
+		&new_csiphy_dev->subdev, &sd_info);
 
 	media_entity_init(&new_csiphy_dev->subdev.entity, 0, NULL, 0);
 	new_csiphy_dev->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV;
@@ -461,16 +426,6 @@ static int __devinit csiphy_probe(struct platform_device *pdev)
 	new_csiphy_dev->subdev.entity.revision =
 		new_csiphy_dev->subdev.devnode->num;
 	new_csiphy_dev->csiphy_state = CSIPHY_POWER_DOWN;
-
-	if (machine_is_apq8064_adp_2()
-			|| machine_is_apq8064_mplatform()
-			|| machine_is_apq8064_adp2_es2()
-			|| machine_is_apq8064_adp2_es2p5()) {
-		if (pdev->id >= 0 && pdev->id < MAX_CSIPHY) {
-			pr_debug("Init csiphy %d\n", pdev->id);
-			lsh_csiphy_dev[pdev->id] = new_csiphy_dev;
-		}
-	}
 	return 0;
 
 csiphy_no_resource:
@@ -509,3 +464,4 @@ module_init(msm_csiphy_init_module);
 module_exit(msm_csiphy_exit_module);
 MODULE_DESCRIPTION("MSM CSIPHY driver");
 MODULE_LICENSE("GPL v2");
+

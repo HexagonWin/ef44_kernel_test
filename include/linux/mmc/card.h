@@ -197,6 +197,7 @@ enum mmc_packed_stop_reasons {
 	REL_WRITE,
 	THRESHOLD,
 	LARGE_SEC_ALIGN,
+	NON_SEQ_WRITE,
 	MAX_REASONS,
 };
 
@@ -292,6 +293,7 @@ struct mmc_card {
 #define MMC_CARD_SDXC		(1<<6)		/* card is SDXC */
 #define MMC_CARD_REMOVED	(1<<7)		/* card has been removed */
 #define MMC_STATE_HIGHSPEED_200	(1<<8)		/* card is in HS200 mode */
+#define MMC_STATE_SLEEP		(1<<9)		/* card is in sleep state */
 #define MMC_STATE_DOING_BKOPS	(1<<10)		/* card is doing BKOPS */
 #define MMC_STATE_NEED_BKOPS	(1<<11)		/* card needs to do BKOPS */
 	unsigned int		quirks; 	/* card quirks */
@@ -309,15 +311,6 @@ struct mmc_card {
 #define MMC_QUIRK_LONG_READ_TIME (1<<9)		/* Data read time > CSD says */
 						/* byte mode */
 #define MMC_QUIRK_INAND_DATA_TIMEOUT  (1<<8)    /* For incorrect data timeout */
-
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-/* 20121221 LS1-JHM modified : disabling BKOPS for samsung eMMC with firmware revision 0x12 (P18) */
-#define MMC_QUIRK_NO_BKOPS  (1<<24)
-/* 20121221 LS1-JHM modified : disabling TRIM for samsung eMMC with firmware revision 0x06 (P06) */
-#define MMC_QUIRK_NO_TRIM  (1<<25)
-#endif
-
 
 	unsigned int		erase_size;	/* erase size in sectors */
  	unsigned int		erase_shift;	/* if erase unit is power 2 */
@@ -352,11 +345,6 @@ struct mmc_card {
 	struct mmc_wr_pack_stats wr_pack_stats; /* packed commands stats*/
 
 	struct mmc_bkops_info	bkops_info;
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-#define BKOPS_MIN_SECTORS_TO_START 204800 /*204800  100MB */
-	unsigned int		sectors_changed;
-#endif
-
 };
 
 /*
@@ -478,6 +466,7 @@ static inline void __maybe_unused remove_quirk(struct mmc_card *card, int data)
 #define mmc_sd_card_uhs(c)	((c)->state & MMC_STATE_ULTRAHIGHSPEED)
 #define mmc_card_ext_capacity(c) ((c)->state & MMC_CARD_SDXC)
 #define mmc_card_removed(c)	((c) && ((c)->state & MMC_CARD_REMOVED))
+#define mmc_card_is_sleep(c)	((c)->state & MMC_STATE_SLEEP)
 #define mmc_card_doing_bkops(c)	((c)->state & MMC_STATE_DOING_BKOPS)
 #define mmc_card_need_bkops(c)	((c)->state & MMC_STATE_NEED_BKOPS)
 
@@ -491,10 +480,13 @@ static inline void __maybe_unused remove_quirk(struct mmc_card *card, int data)
 #define mmc_sd_card_set_uhs(c) ((c)->state |= MMC_STATE_ULTRAHIGHSPEED)
 #define mmc_card_set_ext_capacity(c) ((c)->state |= MMC_CARD_SDXC)
 #define mmc_card_set_removed(c) ((c)->state |= MMC_CARD_REMOVED)
+#define mmc_card_set_sleep(c) ((c)->state |= MMC_STATE_SLEEP)
+
 #define mmc_card_set_doing_bkops(c)	((c)->state |= MMC_STATE_DOING_BKOPS)
 #define mmc_card_clr_doing_bkops(c)	((c)->state &= ~MMC_STATE_DOING_BKOPS)
 #define mmc_card_set_need_bkops(c)	((c)->state |= MMC_STATE_NEED_BKOPS)
 #define mmc_card_clr_need_bkops(c)	((c)->state &= ~MMC_STATE_NEED_BKOPS)
+#define mmc_card_clr_sleep(c)		((c)->state &= ~MMC_STATE_SLEEP)
 /*
  * Quirk add/remove for MMC products.
  */

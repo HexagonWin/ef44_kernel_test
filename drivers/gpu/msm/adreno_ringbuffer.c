@@ -372,11 +372,8 @@ void _ringbuffer_setup_common(struct adreno_ringbuffer *rb)
 	struct kgsl_device *device = rb->device;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
-	kgsl_sharedmem_set(&rb->memptrs_desc, 0, 0,
-						sizeof(struct kgsl_rbmemptrs));
-
-//	kgsl_sharedmem_set(&rb->device, &rb->buffer_desc, 0, 0xAA,
-//						(rb->sizedwords << 2));
+	kgsl_sharedmem_set(rb->device, &rb->buffer_desc, 0, 0xAA,
+			   (rb->sizedwords << 2));
 
 	/*
 	 * The size of the ringbuffer in the hardware is the log2
@@ -1324,4 +1321,3 @@ done:
 	kfree(link);
 	return ret;
 }
-

@@ -96,12 +96,6 @@ static int mmc_decode_cid(struct mmc_card *card)
 		card->cid.prod_name[3]	= UNSTUFF_BITS(resp, 72, 8);
 		card->cid.prod_name[4]	= UNSTUFF_BITS(resp, 64, 8);
 		card->cid.prod_name[5]	= UNSTUFF_BITS(resp, 56, 8);
-		
-/* 20121221 LS1-JHM modified : disabling BKOPS for samsung eMMC with firmware revision 0x12 (P018) */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-		card->cid.fwrev 	= UNSTUFF_BITS(resp, 48, 8);
-#endif
-
 		card->cid.serial	= UNSTUFF_BITS(resp, 16, 32);
 		card->cid.month		= UNSTUFF_BITS(resp, 12, 4);
 		card->cid.year		= UNSTUFF_BITS(resp, 8, 4) + 1997;
@@ -280,11 +274,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	unsigned int part_size;
 	u8 hc_erase_grp_sz = 0, hc_wp_grp_sz = 0;
 
-/* 20130103 LS1-JHM modified : don't care on 4GB, 8GB eMMC */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-	unsigned int emmc_size;
-#endif
-
 	BUG_ON(!card);
 
 	if (!ext_csd)
@@ -302,12 +291,13 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		}
 	}
 
-	/*
-	 * The EXT_CSD format is meant to be forward compatible. As long
-	 * as CSD_STRUCTURE does not change, all values for EXT_CSD_REV
-	 * are authorized, see JEDEC JESD84-B50 section B.8.
-	 */
 	card->ext_csd.rev = ext_csd[EXT_CSD_REV];
+	if (card->ext_csd.rev > 6) {
+		printk(KERN_ERR "%s: unrecognised EXT_CSD revision %d\n",
+			mmc_hostname(card->host), card->ext_csd.rev);
+		err = -EINVAL;
+		goto out;
+	}
 
 	card->ext_csd.raw_sectors[0] = ext_csd[EXT_CSD_SEC_CNT + 0];
 	card->ext_csd.raw_sectors[1] = ext_csd[EXT_CSD_SEC_CNT + 1];
@@ -481,26 +471,28 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 				ext_csd[EXT_CSD_BKOPS_STATUS];
 			if (!card->ext_csd.bkops_en &&
 				card->host->caps2 & MMC_CAP2_INIT_BKOPS) {
-				/* check whether the eMMC card support BKOPS */
-				if(card->cid.oemid == 0x0100 && card->cid.manfid == 0x15
-						&& card->cid.fwrev > 0x06 && card->cid.fwrev < 0x14){
-					pr_warning("%s: BKOPS is not supported (Samsung eMMC rev.0x%x)\n",
-						mmc_hostname(card->host), card->cid.fwrev);
-				}else{
-					err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
-						EXT_CSD_BKOPS_EN, 1, 0);
-				}
+				err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
+					EXT_CSD_BKOPS_EN, 1, 0);
 				if (err)
 					pr_warn("%s: Enabling BKOPS failed\n",
 						mmc_hostname(card->host));
 				else
 					card->ext_csd.bkops_en = 1;
 			}
+			/* As a workaround for freezes caused by a buggy Samsung
+			 * controller/eMMC, bkops is disabled while keeping the option
+			 * switched on.
+			 */
+			if (card->cid.manfid == 0x15) {
+				card->ext_csd.bkops_en = 0;
+				card->ext_csd.raw_bkops_status = 0;
+			}
+
 			if (!card->ext_csd.bkops_en)
 				pr_info("%s: BKOPS_EN bit is not set\n",
 					mmc_hostname(card->host));
 		}
-#endif
+
 		/* check whether the eMMC card supports HPI */
 		if (ext_csd[EXT_CSD_HPI_FEATURES] & 0x1) {
 			card->ext_csd.hpi = 1;
@@ -560,59 +552,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		card->ext_csd.max_packed_reads =
 			ext_csd[EXT_CSD_MAX_PACKED_READS];
 	}
-
-/* 20121221 LS1-JHM modified : enabling BKOPS for eMMC performance */
-/* 20121221 LS1-JHM modified : enabling DISCARD for eMMC performance */
-#ifdef FEATURE_PANTECH_SAMSUNG_EMMC_BUG_FIX
-	if(card->cid.oemid == 0x0100 && card->cid.manfid == 0x15){
-
-		/* 20130103 LS1-JHM modified : don't care on 4GB, 8GB eMMC */		
-		if (mmc_card_blockaddr(card))
-			emmc_size = card->ext_csd.sectors;
-		else
-			emmc_size = card->csd.capacity << (card->csd.read_blkbits - 9);
-
-		if (emmc_size > 20971520 /*(10u * 1024 * 1024 * 1024) / 512 = 10GB */ ){
-			if(card->cid.fwrev < 0x06){
-				add_quirk_mmc(card, MMC_QUIRK_NO_BKOPS);
-				card->ext_csd.bkops = 0;
-				card->ext_csd.bkops_en = 0;
-				add_quirk_mmc(card, MMC_QUIRK_NO_TRIM);
-			}
-			
-			/* disabling BKOPS for samsung eMMC with firmware revision 0x0f (P15), 0x12 (P18) */
-			if(card->cid.fwrev > 0x06 && card->cid.fwrev < 0x14){
-				add_quirk_mmc(card, MMC_QUIRK_NO_BKOPS);
-
-				card->ext_csd.bkops = 0;
-				card->ext_csd.bkops_en = 0;
-			}
-			
-			/* disabling TRIM for samsung eMMC with firmware revision 0x06 (P06), 0x0f (P15) */
-			if(card->cid.fwrev < 0x12){
-				add_quirk_mmc(card, MMC_QUIRK_NO_TRIM);
-			}
-
-			if (!(card->ext_csd.feature_support & MMC_DISCARD_FEATURE) 
-				&& (ext_csd[EXT_CSD_VENDOR_SPECIFIC] & 0x01)){
-					card->ext_csd.feature_support |= MMC_DISCARD_FEATURE;
-			}
-		}else{
-			add_quirk_mmc(card, MMC_QUIRK_NO_BKOPS);
-			card->ext_csd.bkops = 0;
-			card->ext_csd.bkops_en = 0;
-			add_quirk_mmc(card, MMC_QUIRK_NO_TRIM);
-		}
-		pr_err("%s: size %u, bkops %x, trim %x, discard %x (vendor spec %x)",
-			mmc_hostname(card->host),
-			emmc_size,
-			(card->quirks & MMC_QUIRK_NO_BKOPS)?0:1,
-			(card->quirks & MMC_QUIRK_NO_TRIM)?0:1,
-			(card->ext_csd.feature_support & MMC_DISCARD_FEATURE)?1:0,
-			ext_csd[EXT_CSD_VENDOR_SPECIFIC] &0x01);
-	}
-#endif
-
 
 out:
 	return err;
@@ -702,6 +641,7 @@ MMC_DEV_ATTR(serial, "0x%08x\n", card->cid.serial);
 MMC_DEV_ATTR(enhanced_area_offset, "%llu\n",
 		card->ext_csd.enhanced_area_offset);
 MMC_DEV_ATTR(enhanced_area_size, "%u\n", card->ext_csd.enhanced_area_size);
+MMC_DEV_ATTR(ext_csd_rev, "%d\n", card->ext_csd.rev);
 
 static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_cid.attr,
@@ -717,6 +657,7 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_serial.attr,
 	&dev_attr_enhanced_area_offset.attr,
 	&dev_attr_enhanced_area_size.attr,
+	&dev_attr_ext_csd_rev.attr,
 	NULL,
 };
 
@@ -1569,6 +1510,31 @@ static void mmc_detect(struct mmc_host *host)
 }
 
 /*
+ * Save ios settings
+ */
+static void mmc_save_ios(struct mmc_host *host)
+{
+	BUG_ON(!host);
+
+	mmc_host_clk_hold(host);
+
+	memcpy(&host->saved_ios, &host->ios, sizeof(struct mmc_ios));
+
+	mmc_host_clk_release(host);
+}
+
+/*
+ * Restore ios setting
+ */
+static void mmc_restore_ios(struct mmc_host *host)
+{
+	BUG_ON(!host);
+
+	memcpy(&host->ios, &host->saved_ios, sizeof(struct mmc_ios));
+	mmc_set_ios(host);
+}
+
+/*
  * Suspend callback from host.
  */
 static int mmc_suspend(struct mmc_host *host)
@@ -1586,14 +1552,23 @@ static int mmc_suspend(struct mmc_host *host)
 
 	mmc_claim_host(host);
 
+	mmc_save_ios(host);
+
 	err = mmc_cache_ctrl(host, 0);
 	if (err)
 		goto out;
 
-	if (mmc_can_poweroff_notify(host->card))
+	/*
+	 * Prefer CMD5 sleep/awake over PON to get faster response after sleep.
+	 * Some cards are known to have problems waking after sleep in HS200
+	 * mode, so we use PON in this case if available.
+	 */
+	if (mmc_card_can_sleep(host) && !mmc_card_hs200(host->card))
+		/* Ignore errors from sleep cmd to not abort suspend. Card
+		 * will be fully re-inited at next resume in error case. */
+		mmc_card_sleep(host);
+	else if (mmc_can_poweroff_notify(host->card))
 		err = mmc_poweroff_notify(host->card, EXT_CSD_POWER_OFF_SHORT);
-	else if (mmc_card_can_sleep(host))
-		err = mmc_card_sleep(host);
 	else if (!mmc_host_is_spi(host))
 		mmc_deselect_cards(host);
 	host->card->state &= ~(MMC_STATE_HIGHSPEED | MMC_STATE_HIGHSPEED_200);
@@ -1617,7 +1592,11 @@ static int mmc_resume(struct mmc_host *host)
 	BUG_ON(!host->card);
 
 	mmc_claim_host(host);
-	err = mmc_init_card(host, host->ocr, host->card);
+	if (mmc_card_is_sleep(host->card)) {
+		mmc_restore_ios(host);
+		err = mmc_card_awake(host);
+	} else
+		err = mmc_init_card(host, host->ocr, host->card);
 	mmc_release_host(host);
 
 	/*
@@ -1638,6 +1617,7 @@ static int mmc_power_restore(struct mmc_host *host)
 	mmc_disable_clk_scaling(host);
 
 	host->card->state &= ~(MMC_STATE_HIGHSPEED | MMC_STATE_HIGHSPEED_200);
+	mmc_card_clr_sleep(host->card);
 	mmc_claim_host(host);
 	ret = mmc_init_card(host, host->ocr, host->card);
 	mmc_release_host(host);
@@ -1796,3 +1776,4 @@ err:
 
 	return err;
 }
+

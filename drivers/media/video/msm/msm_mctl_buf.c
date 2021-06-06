@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2013, 2015, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -26,6 +26,7 @@
 #include <linux/android_pmem.h>
 
 #include "msm.h"
+#include "msm_cam_server.h"
 #include "msm_ispif.h"
 
 #ifdef CONFIG_MSM_CAMERA_DEBUG
@@ -55,8 +56,8 @@ static int msm_vb2_ops_queue_setup(struct vb2_queue *vq,
 	*num_planes = pcam_inst->plane_info.num_planes;
 	for (i = 0; i < pcam_inst->vid_fmt.fmt.pix_mp.num_planes; i++) {
 		sizes[i] = pcam_inst->plane_info.plane[i].size;
-		D("%s Inst %p : Plane %d Offset = %d Size = %ld" \
-			"Aligned Size = %d\n", __func__, pcam_inst, i,
+		D("%s Inst %p : Plane %d Offset = %d Size = %ld"
+			"Aligned Size = %d", __func__, pcam_inst, i,
 			pcam_inst->plane_info.plane[i].offset,
 			pcam_inst->plane_info.plane[i].size, sizes[i]);
 	}
@@ -114,7 +115,11 @@ static int msm_vb2_ops_buf_init(struct vb2_buffer *vb)
 			pcam_inst->plane_info.plane[0].offset;
 	}
 	buf_idx = vb->v4l2_buf.index;
-	pmctl = msm_camera_get_mctl(pcam->mctl_handle);
+	pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
+	if (pmctl == NULL) {
+		pr_err("%s No mctl found\n", __func__);
+		return -EINVAL;
+	}
 	for (i = 0; i < vb->num_planes; i++) {
 		mem = vb2_plane_cookie(vb, i);
 		if (mem == NULL) {
@@ -152,13 +157,14 @@ static int msm_vb2_ops_buf_prepare(struct vb2_buffer *vb)
 	struct msm_cam_v4l2_dev_inst *pcam_inst;
 	struct msm_cam_v4l2_device *pcam;
 	struct msm_frame_buffer *buf;
-	struct vb2_queue	*vq = vb->vb2_queue;
+	struct vb2_queue *vq;
 
 	D("%s\n", __func__);
-	if (!vb || !vq) {
+	if (!vb || !vb->vb2_queue) {
 		pr_err("%s error : input is NULL\n", __func__);
 		return -EINVAL;
 	}
+	vq = vb->vb2_queue;
 	pcam_inst = vb2_get_drv_priv(vq);
 	pcam = pcam_inst->pcam;
 	buf = container_of(vb, struct msm_frame_buffer, vidbuf);
@@ -211,6 +217,7 @@ static void msm_vb2_ops_buf_cleanup(struct vb2_buffer *vb)
 	pcam_inst = vb2_get_drv_priv(vb->vb2_queue);
 	pcam = pcam_inst->pcam;
 	buf = container_of(vb, struct msm_frame_buffer, vidbuf);
+
 
 	if (pcam_inst->vid_fmt.type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
 		for (i = 0; i < vb->num_planes; i++) {
@@ -291,13 +298,14 @@ static void msm_vb2_ops_buf_queue(struct vb2_buffer *vb)
 	struct msm_cam_v4l2_dev_inst *pcam_inst = NULL;
 	struct msm_cam_v4l2_device *pcam = NULL;
 	unsigned long flags = 0;
-	struct vb2_queue *vq = vb->vb2_queue;
+	struct vb2_queue *vq;
 	struct msm_frame_buffer *buf;
 	D("%s\n", __func__);
-	if (!vb || !vq) {
+	if (!vb || !vb->vb2_queue) {
 		pr_err("%s error : input is NULL\n", __func__);
 		return ;
 	}
+	vq = vb->vb2_queue;
 	pcam_inst = vb2_get_drv_priv(vq);
 	pcam = pcam_inst->pcam;
 	D("%s pcam_inst=%p,(vb=0x%p),idx=%d,len=%d\n",
@@ -568,7 +576,11 @@ int msm_mctl_buf_done(struct msm_cam_media_controller *p_mctl,
 int msm_mctl_buf_init(struct msm_cam_v4l2_device *pcam)
 {
 	struct msm_cam_media_controller *pmctl;
-	pmctl = msm_camera_get_mctl(pcam->mctl_handle);
+	pmctl = msm_cam_server_get_mctl(pcam->mctl_handle);
+	if (pmctl == NULL) {
+		pr_err("%s No mctl found\n", __func__);
+		return -EINVAL;
+	}
 	pmctl->mctl_vbqueue_init = msm_vbqueue_init;
 	return 0;
 }
@@ -998,8 +1010,6 @@ static int __msm_mctl_map_user_frame(struct msm_cam_meta_frame *meta_frame,
 
 		/* Validate the offsets with the mapped length. */
 		if ((meta_frame->frame.mp[i].addr_offset > len) ||
-			(meta_frame->frame.mp[i].data_offset > UINT_MAX -
-			meta_frame->frame.mp[i].length) ||
 			(meta_frame->frame.mp[i].data_offset +
 			meta_frame->frame.mp[i].length > len)) {
 			pr_err("%s: Invalid offsets A %d D %d L %d len %ld",
