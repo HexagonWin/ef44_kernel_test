@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, 2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -18,6 +18,16 @@
 #include <linux/ioctl.h>
 #include <mach/camera.h>
 #include "../msm.h"
+
+struct msm_cam_server_adp_cam {
+	void (*adp_cam_cb)(void *instance, unsigned int event_id, void *arg);
+	uint32_t interface;
+	struct v4l2_subdev *csiphy_sd;
+	struct v4l2_subdev *csid_sd;
+};
+
+void msm_cam_server_adp_cam_register(struct msm_cam_server_adp_cam *ops);
+void msm_cam_server_adp_cam_deregister(void);
 
 uint32_t msm_cam_server_get_mctl_handle(void);
 struct iommu_domain *msm_cam_server_get_domain(void);
@@ -72,4 +82,5 @@ int msm_cam_server_config_interface_map(u32 extendedmode,
 	uint32_t mctl_handle, int vnode_id, int is_bayer_sensor);
 uint32_t msm_cam_find_handle_from_mctl_ptr(
 	struct msm_cam_media_controller *p_mctl);
+int msm_cam_server_get_domain_num(void);
 #endif /* _MSM_CAM_SERVER_H */

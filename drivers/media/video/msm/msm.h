@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, 2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -167,6 +167,16 @@ enum msm_camera_v4l2_subdev_notify {
 	NOTIFY_AXI_IRQ,
 	NOTIFY_GESTURE_EVT, /* arg = v4l2_event */
 	NOTIFY_GESTURE_CAM_EVT, /* arg = int */
+	NOTIFY_ISPIF_OVERFLOW_ERROR, /* arg = enum msm_ispif_intftype */
+	NOTIFY_VFE_VIOLATION_ERROR,
+	NOTIFY_VFE_AXI_ERROR,
+	NOTIFY_VFE_WM_OVERFLOW_ERROR,
+	NOTIFY_CSID_UNBOUNDED_FRAME_ERROR,
+	NOTIFY_CSID_STREAM_UNDERFLOW_ERROR,
+	NOTIFY_CSID_ECC_ERROR,
+	NOTIFY_CSID_CRC_ERROR,
+	NOTIFY_CSID_PHY_DL_OVERFLOW_ERROR,
+	NOTIFY_CSIPHY_ERROR,
 	NOTIFY_INVALID
 };
 
@@ -589,6 +599,9 @@ struct msm_cam_server_dev {
 	struct v4l2_subdev *cpp_device[MAX_NUM_CPP_DEV];
 	struct v4l2_subdev *irqr_device;
 	struct v4l2_subdev *cci_device;
+
+	/* adp camera */
+	struct msm_cam_server_adp_cam *adp_cam;
 
 	spinlock_t  intr_table_lock;
 	struct irqmgr_intr_lkup_table irq_lkup_table;

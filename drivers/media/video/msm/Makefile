@@ -22,6 +22,7 @@ endif
 obj-$(CONFIG_MSM_CAMERA) += vfe/
 obj-$(CONFIG_MSM_CAMERA) += msm_axi_qos.o gemini/ mercury/ jpeg_10/
 obj-$(CONFIG_MSM_CAMERA_FLASH) += flash.o
+obj-$(CONFIG_SWITCH_REVERSE) += adp_camera.o
 ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
   obj-$(CONFIG_ARCH_MSM8X60) += msm_vpe.o
   obj-$(CONFIG_ARCH_MSM7X30) += msm_vpe.o msm_axi_qos.o
@@ -55,5 +56,4 @@ obj-$(CONFIG_OV5640) += ov5640.o
 obj-$(CONFIG_MT9D112) += mt9d112.o mt9d112_reg.o
 
 obj-$(CONFIG_MT9D113) += mt9d113.o mt9d113_reg.o
-obj-$(CONFIG_SONY_VPE) += sony_vpe.o
 obj-$(CONFIG_MSM_V4L2_VIDEO_OVERLAY_DEVICE) += msm_v4l2_video.o

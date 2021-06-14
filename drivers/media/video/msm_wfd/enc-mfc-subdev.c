@@ -2099,12 +2099,6 @@ static long venc_alloc_recon_buffers(struct v4l2_subdev *sd, void *arg)
 					goto unmap_ion_alloc;
 				}
 			} else {
-					&phy_addr, (size_t *)&len);
-				if (rc || !phy_addr) {
-					WFD_MSG_ERR("ion physical failed\n");
-					goto unmap_ion_alloc;
-				}
-			} else {
 				rc = ion_map_iommu(client_ctx->user_ion_client,
 					client_ctx->recon_buffer_ion_handle[i],
 					VIDEO_DOMAIN, VIDEO_MAIN_POOL, SZ_4K,

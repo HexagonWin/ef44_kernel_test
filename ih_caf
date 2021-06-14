@@ -1,0 +1,86 @@
+../caf-msm/drivers/media/video/msm/msm.h:	uint32_t inst_handle;
+../caf-msm/drivers/media/video/msm/msm.h:	uint32_t inst_handle;
+../caf-msm/drivers/media/video/msm/msm.h:	uint32_t inst_handle;
+../caf-msm/drivers/media/video/msm/msm_isp.c:		buf_handle.inst_handle = frame_info->inst_handle;
+../caf-msm/drivers/media/video/msm/msm_isp.c:		if (!isp_output->buf.inst_handle) {
+../caf-msm/drivers/media/video/msm/msm_isp.c:			buf_handle.inst_handle = isp_output->buf.inst_handle;
+../caf-msm/drivers/media/video/msm/server/msm_cam_server.c:	plane_info.inst_handle = pcam->dev_inst[idx]->inst_handle;
+../caf-msm/drivers/media/video/msm/server/msm_cam_server.c:	plane_info.inst_handle = pcam->dev_inst[idx]->inst_handle;
+../caf-msm/drivers/media/video/msm/server/msm_cam_server.c:		if (frame_info->inst_handle) {
+../caf-msm/drivers/media/video/msm/server/msm_cam_server.c:			vnode_id = GET_DEVID_MODE(frame_info->inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:static void vfe32_subdev_notify(int id, int path, uint32_t inst_handle,
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	frame_info.inst_handle = inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	axi_ctrl->share_ctrl->outpath.out0.inst_handle = *ch_info++;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	axi_ctrl->share_ctrl->outpath.out1.inst_handle = *ch_info++;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	axi_ctrl->share_ctrl->outpath.out2.inst_handle = *ch_info++;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		axi_ctrl->share_ctrl->outpath.out3.inst_handle =
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	axi_ctrl->share_ctrl->outpath.out4.inst_handle = *ch_info++;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	uint32_t inst_handle = 0;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out0.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out1.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out2.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out3.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out4.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	vfe32_subdev_notify(id, path, inst_handle,
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	uint32_t inst_handle = 0;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out0.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out1.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out2.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out3.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		inst_handle = axi_ctrl->share_ctrl->outpath.out4.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	CDBG("%s path %d, inst_handle 0x%x\n", __func__, path, inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		vfe32_subdev_notify(id, path, inst_handle,
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	uint32_t ch2_paddr, uint32_t inst_handle)
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:	msg.buf.inst_handle = inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:			axi_ctrl->share_ctrl->outpath.out0.inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:			axi_ctrl->share_ctrl->outpath.out1.inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:				axi_ctrl->share_ctrl->outpath.out2.inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:				axi_ctrl->share_ctrl->outpath.out3.inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:				axi_ctrl->share_ctrl->outpath.out4.inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:				axi_ctrl->share_ctrl->outpath.out2.inst_handle);
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:			axi_ctrl->share_ctrl->outpath.out1.inst_handle =
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:				vfe_params.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:			axi_ctrl->share_ctrl->outpath.out0.inst_handle =
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:				vfe_params.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:		axi_ctrl->share_ctrl->outpath.out0.inst_handle =
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.c:			vfe_params.inst_handle;
+../caf-msm/drivers/media/video/msm/vfe/msm_vfe32.h:	uint32_t inst_handle;
+../caf-msm/drivers/media/video/msm/adp_camera.h:	int32_t   inst_handle:32;
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:		image_mode = GET_IMG_MODE(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:			idx = GET_MCTLPP_INST_IDX(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:					buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:		if (buf_handle->inst_handle == 0) {
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:			idx = GET_MCTLPP_INST_IDX(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:					buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:		idx = GET_MCTLPP_INST_IDX(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_buf.c:			idx = GET_VIDEO_INST_IDX(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm.c:			(void *)&pcam_inst->inst_handle, sizeof(uint32_t));
+../caf-msm/drivers/media/video/msm/msm.c:	SET_DEVID_MODE(pcam_inst->inst_handle, pcam_inst->pcam->vnode_id);
+../caf-msm/drivers/media/video/msm/msm.c:	SET_IMG_MODE(pcam_inst->inst_handle, pcam_inst->image_mode);
+../caf-msm/drivers/media/video/msm/msm.c:	SET_VIDEO_INST_IDX(pcam_inst->inst_handle, pcam_inst->my_index);
+../caf-msm/drivers/media/video/msm/msm.c:	CLR_VIDEO_INST_IDX(pcam_inst->inst_handle);
+../caf-msm/drivers/media/video/msm/msm.c:	CLR_IMG_MODE(pcam_inst->inst_handle);
+../caf-msm/drivers/media/video/msm/msm.c:	CLR_DEVID_MODE(pcam_inst->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:	CLR_MCTLPP_INST_IDX(pcam_inst->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:	CLR_DEVID_MODE(pcam_inst->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:	CLR_IMG_MODE(pcam_inst->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:	SET_DEVID_MODE(pcam_inst->inst_handle, pmctl->pcam_ptr->vnode_id);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:	SET_IMG_MODE(pcam_inst->inst_handle, pcam_inst->image_mode);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:	SET_MCTLPP_INST_IDX(pcam_inst->inst_handle, pcam_inst->my_index);
+../caf-msm/drivers/media/video/msm/msm_mctl.c:			(void *)&pcam_inst->inst_handle, sizeof(uint32_t));
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		idx = GET_MCTLPP_INST_IDX(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:			idx = GET_VIDEO_INST_IDX(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		div.frame.inst_handle = 0;
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		image_mode = GET_IMG_MODE(buf_handle->inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		div.frame.inst_handle = buf_handle->inst_handle;
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:	pp_frame->inst_handle = pcam_inst->inst_handle;
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		pcam_inst, div_frame.frame.inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:	if (div_frame.frame.inst_handle) {
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		buf_handle.inst_handle = div_frame.frame.inst_handle;
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:	if (div_frame.frame.inst_handle) {
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		buf_handle.inst_handle = div_frame.frame.inst_handle;
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:	if (frame.inst_handle) {
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		buf_handle.inst_handle = frame.inst_handle;
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		image_mode = GET_IMG_MODE(frame.inst_handle);
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:	if (frame.inst_handle) {
+../caf-msm/drivers/media/video/msm/msm_mctl_pp.c:		buf_handle.inst_handle = frame.inst_handle;

@@ -179,16 +179,6 @@ static int wfd_allocate_ion_buffer(struct ion_client *client,
 		goto alloc_fail;
 	}
 
-	if (secure) {
-		WFD_MSG_INFO("%s: calling ion_phys", __func__);
-		rc = ion_phys(client,
-			handle,
-			(unsigned long *)&phys_addr, (size_t *)&size);
-	} else {
-		WFD_MSG_INFO("%s: calling ion_map_iommu", __func__);
-	}
-			"Failed to get physical addr, rc = %d, phys_addr = 0x%p\n",
-			rc, phys_addr);
 	mregion->kvaddr = kvaddr;
 	mregion->ion_handle = handle;
 
@@ -329,7 +319,7 @@ int wfd_allocate_input_buffers(struct wfd_device *wfd_dev,
 		rc = v4l2_subdev_call(&wfd_dev->mdp_sdev, core, ioctl,
 				MDP_MMAP, (void *)&mmap_context);
 
-		if (rc || !mdp_mregion->paddr) {
+		if (rc) {
 			WFD_MSG_ERR(
 				"Failed to map to mdp, rc = %d, paddr = 0x%p\n",
 				rc, mdp_mregion->paddr);
@@ -691,7 +681,7 @@ int wfd_vidbuf_start_streaming(struct vb2_queue *q, unsigned int count)
 		WFD_MSG_ERR("Failed to start vsg\n");
 		goto subdev_start_fail;
 	}
-	init_completion(&inst->stop_mdp_thread);
+
 	init_completion(&inst->stop_mdp_thread);
 	inst->mdp_task = kthread_run(mdp_output_thread, priv_data,
 				"mdp_output_thread");

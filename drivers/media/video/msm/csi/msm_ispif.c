@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012,2014-2015 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -20,7 +20,6 @@
 #include "msm_ispif.h"
 #include "msm.h"
 #include "msm_ispif_hwreg.h"
-
 #define V4L2_IDENT_ISPIF                     50001
 #define CSID_VERSION_V2                      0x02000011
 #define CSID_VERSION_V3                      0x30000000
@@ -30,6 +29,7 @@
 static atomic_t ispif_irq_cnt;
 static spinlock_t ispif_tasklet_lock;
 static struct list_head ispif_tasklet_q;
+struct ispif_device *lsh_ispif;
 
 static int msm_ispif_intf_reset(struct ispif_device *ispif,
 	uint16_t intfmask, uint8_t vfe_intf)
@@ -211,7 +211,7 @@ static void msm_ispif_enable_intf_cids(struct ispif_device *ispif,
 	mutex_unlock(&ispif->mutex);
 }
 
-static int32_t msm_ispif_validate_intf_status(struct ispif_device *ispif,
+int32_t msm_ispif_validate_intf_status(struct ispif_device *ispif,
 	uint8_t intftype, uint8_t vfe_intf)
 {
 	int32_t rc = 0;
@@ -249,7 +249,7 @@ static int32_t msm_ispif_validate_intf_status(struct ispif_device *ispif,
 	return rc;
 }
 
-static int msm_ispif_config(struct ispif_device *ispif,
+int msm_ispif_config(struct ispif_device *ispif,
 	struct msm_ispif_params_list *params_list)
 {
 	uint32_t params_len;
@@ -260,6 +260,13 @@ static int msm_ispif_config(struct ispif_device *ispif,
 	params_len = params_list->len;
 	ispif_params = params_list->params;
 	CDBG("Enable interface\n");
+
+	if (!ispif || !params_list ||
+		(params_len > ARRAY_SIZE(params_list->params))) {
+		pr_err("%s: null param or out of range length", __func__);
+		return -EINVAL;
+	}
+
 	msm_camera_io_w(0x00000000, ispif->base + ISPIF_IRQ_MASK_ADDR);
 	msm_camera_io_w(0x00000000, ispif->base + ISPIF_IRQ_MASK_1_ADDR);
 	msm_camera_io_w(0x00000000, ispif->base + ISPIF_IRQ_MASK_2_ADDR);
@@ -531,14 +538,53 @@ static int msm_ispif_subdev_video_s_stream(struct v4l2_subdev *sd,
 	return rc;
 }
 
+int msm_ispif_subdev_video_s_stream_rdi_only(struct ispif_device *ispif,
+	int enable)
+{
+	uint32_t cmd = enable & ((1<<ISPIF_S_STREAM_SHIFT)-1);
+	uint16_t intf = enable >> ISPIF_S_STREAM_SHIFT;
+	uint8_t vfe_intf = enable >> ISPIF_VFE_INTF_SHIFT;
+	int rc = -EINVAL;
+	BUG_ON(!ispif);
+	if ((ispif->csid_version <= CSID_VERSION_V2 && vfe_intf > VFE0) ||
+		(ispif->csid_version == CSID_VERSION_V3 &&
+		vfe_intf >= VFE_MAX)) {
+		pr_err("%s invalid csid version %x && vfe intf %d\n", __func__,
+			ispif->csid_version, vfe_intf);
+		return rc;
+	}
+	switch (cmd) {
+	case ISPIF_ON_FRAME_BOUNDARY:
+		rc = msm_ispif_start_intf_transfer(ispif, intf, vfe_intf);
+		break;
+	case ISPIF_OFF_FRAME_BOUNDARY:
+		rc = msm_ispif_stop_intf_transfer(ispif, intf, vfe_intf);
+		break;
+	case ISPIF_OFF_IMMEDIATELY:
+		rc = msm_ispif_abort_intf_transfer(ispif, intf, vfe_intf);
+		break;
+	default:
+		break;
+	}
+/*	msm_camera_io_dump(ispif->base,	0x129); */
+	return rc;
+}
+
+static void msm_ispif_overflow_notify(struct ispif_device *ispif,
+	enum msm_ispif_intftype interface)
+{
+	v4l2_subdev_notify(&ispif->subdev, NOTIFY_ISPIF_OVERFLOW_ERROR,
+					(void *)&interface);
+}
+
 static void send_rdi_sof(struct ispif_device *ispif,
 	enum msm_ispif_intftype interface, int count)
 {
 	struct rdi_count_msg sof_msg;
 	sof_msg.rdi_interface = interface;
 	sof_msg.count = count;
-//	v4l2_subdev_notify(&ispif->subdev, NOTIFY_AXI_RDI_SOF_COUNT,
-//					   (void *)&sof_msg);
+	v4l2_subdev_notify(&ispif->subdev, NOTIFY_AXI_RDI_SOF_COUNT,
+					   (void *)&sof_msg);
 }
 
 static void ispif_do_tasklet(unsigned long data)
@@ -645,19 +691,27 @@ static inline void msm_ispif_read_irq_status(struct ispif_irq_status *out,
 	CDBG("%s: irq vfe0 Irq_status0 = 0x%x, 1 = 0x%x, 2 = 0x%x\n",
 		__func__, out->ispifIrqStatus0, out->ispifIrqStatus1,
 		out->ispifIrqStatus2);
-	if (out->ispifIrqStatus0 & ISPIF_IRQ_STATUS_MASK ||
-		out->ispifIrqStatus1 & ISPIF_IRQ_STATUS_1_MASK ||
-		out->ispifIrqStatus2 & ISPIF_IRQ_STATUS_2_MASK) {
+	if ((out->ispifIrqStatus0 & ISPIF_IRQ_STATUS_MASK) ||
+		(out->ispifIrqStatus1 & ISPIF_IRQ_STATUS_1_MASK) ||
+		(out->ispifIrqStatus2 & ISPIF_IRQ_STATUS_2_MASK)) {
 		if (out->ispifIrqStatus0 & (0x1 << RESET_DONE_IRQ))
 			complete(&ispif->reset_complete);
-		if (out->ispifIrqStatus0 & (0x1 << PIX_INTF_0_OVERFLOW_IRQ))
+		if (out->ispifIrqStatus0 & (0x1 << PIX_INTF_0_OVERFLOW_IRQ)) {
 			pr_err("%s: pix intf 0 overflow.\n", __func__);
-		if (out->ispifIrqStatus0 & (0x1 << RAW_INTF_0_OVERFLOW_IRQ))
+			msm_ispif_overflow_notify(ispif, PIX0);
+		}
+		if (out->ispifIrqStatus0 & (0x1 << RAW_INTF_0_OVERFLOW_IRQ)) {
 			pr_err("%s: rdi intf 0 overflow.\n", __func__);
-		if (out->ispifIrqStatus1 & (0x1 << RAW_INTF_1_OVERFLOW_IRQ))
+			msm_ispif_overflow_notify(ispif, RDI0);
+		}
+		if (out->ispifIrqStatus1 & (0x1 << RAW_INTF_1_OVERFLOW_IRQ)) {
 			pr_err("%s: rdi intf 1 overflow.\n", __func__);
-		if (out->ispifIrqStatus2 & (0x1 << RAW_INTF_2_OVERFLOW_IRQ))
+			msm_ispif_overflow_notify(ispif, RDI1);
+		}
+		if (out->ispifIrqStatus2 & (0x1 << RAW_INTF_2_OVERFLOW_IRQ)) {
 			pr_err("%s: rdi intf 2 overflow.\n", __func__);
+			msm_ispif_overflow_notify(ispif, RDI2);
+		}
 		if ((out->ispifIrqStatus0 & ISPIF_IRQ_STATUS_SOF_MASK) ||
 			(out->ispifIrqStatus1 &	ISPIF_IRQ_STATUS_SOF_MASK) ||
 			(out->ispifIrqStatus2 & ISPIF_IRQ_STATUS_RDI2_SOF_MASK))
@@ -698,16 +752,20 @@ static struct msm_cam_clk_info ispif_8960_clk_info[] = {
 	{"csi_rdi2_clk", 0},
 };
 
-static int msm_ispif_init(struct ispif_device *ispif,
+int msm_ispif_init(struct ispif_device *ispif,
 	const uint32_t *csid_version)
 {
 	int rc = 0;
 	CDBG("%s called %d\n", __func__, __LINE__);
 
+	pr_debug("%s - %d", __func__, ispif->refcnt+1);
+
+	if (ispif->refcnt++)
+		return 0;
+
 	if (ispif->ispif_state == ISPIF_POWER_UP) {
-		pr_err("%s: ispif invalid state %d\n", __func__,
+		pr_err("%s: ispif already initialized %d\n", __func__,
 			ispif->ispif_state);
-		rc = -EINVAL;
 		return rc;
 	}
 
@@ -738,17 +796,33 @@ static int msm_ispif_init(struct ispif_device *ispif,
 	return rc;
 }
 
-static void msm_ispif_release(struct ispif_device *ispif)
+void msm_ispif_release(struct ispif_device *ispif)
 {
-        BUG_ON(!ispif);
+	BUG_ON(!ispif);
+
+	pr_debug("%s - %d", __func__, ispif->refcnt-1);
+
+	if (ispif->refcnt) {
+		if (--ispif->refcnt)
+			return;
+	} else {
+		pr_err("%s refcnt already 0!", __func__);
+	}
 
 	if (!ispif->base) {
-	        pr_err("%s: ispif base is NULL\n", __func__);
-	        return;
-        }
+		pr_err("%s: ispif base is NULL\n", __func__);
+		return;
+	}
 
 	if (ispif->ispif_state != ISPIF_POWER_UP) {
 		pr_err("%s: ispif invalid state %d\n", __func__,
+			ispif->ispif_state);
+		return;
+	}
+
+	if (ispif->reserved_adp) {
+		pr_err("%s: rdi reserved skip ispif power down %d\n",
+			__func__,
 			ispif->ispif_state);
 		return;
 	}
@@ -765,6 +839,19 @@ static void msm_ispif_release(struct ispif_device *ispif)
 			ispif->ispif_clk, ARRAY_SIZE(ispif_8960_clk_info), 0);
 	}
 	ispif->ispif_state = ISPIF_POWER_DOWN;
+}
+
+int msm_ispif_init_rdi(struct ispif_device *ispif,
+	const uint32_t *csid_version)
+{
+	ispif->reserved_adp = true;
+	return msm_ispif_init(ispif, csid_version);
+}
+
+void msm_ispif_release_rdi(struct ispif_device *ispif)
+{
+	ispif->reserved_adp = false;
+	msm_ispif_release(ispif);
 }
 
 static long msm_ispif_cmd(struct v4l2_subdev *sd, void *arg)
@@ -907,6 +994,14 @@ static int __devinit ispif_probe(struct platform_device *pdev)
 	ispif->subdev.entity.name = pdev->name;
 	ispif->subdev.entity.revision = ispif->subdev.devnode->num;
 	ispif->ispif_state = ISPIF_POWER_DOWN;
+	ispif->reserved_adp = false;
+	if (machine_is_apq8064_adp_2()
+			|| machine_is_apq8064_mplatform()
+			|| machine_is_apq8064_adp2_es2()
+			|| machine_is_apq8064_adp2_es2p5()) {
+		lsh_ispif = ispif;
+		pr_debug("%s : ispif finished\n", __func__);
+	}
 	return 0;
 
 ispif_no_mem:

@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012,2015 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -26,6 +26,8 @@
 #include "msm_camera_eeprom.h"
 
 #define MSM_MAX_CAMERA_SENSORS 5
+#define QAV_SENSOR "avdev"
+#define QVIDEO_NAME "msm_avdevice"
 
 #ifdef CONFIG_MSM_CAMERA_DEBUG
 #define D(fmt, args...) pr_debug("msm: " fmt, ##args)
@@ -364,7 +366,13 @@ static int msm_camera_v4l2_dqbuf(struct file *f, void *pctx,
 	}
 	rc = vb2_dqbuf(&pcam_inst->vid_bufq, pb,  f->f_flags & O_NONBLOCK);
 	if (rc < 0) {
-		pr_err("%s, videobuf_dqbuf returns %d\n", __func__, rc);
+		if (rc == -EAGAIN)
+			pr_debug(
+				"%s, videobuf_dqbuf queue empty %d, flags 0x%X\n",
+				__func__, rc, f->f_flags);
+		else
+			pr_err("%s, videobuf_dqbuf returns %d, flags 0x%X\n",
+				__func__, rc, f->f_flags);
 		mutex_unlock(&pcam_inst->inst_lock);
 		return rc;
 	}
@@ -693,7 +701,12 @@ static int msm_camera_v4l2_s_crop(struct file *f, void *pctx,
 static int msm_camera_v4l2_g_parm(struct file *f, void *pctx,
 				struct v4l2_streamparm *a)
 {
-	int rc = -EINVAL;
+	int rc = 0;
+	struct msm_cam_v4l2_dev_inst *pcam_inst;
+	pcam_inst = container_of(f->private_data,
+		struct msm_cam_v4l2_dev_inst, eventHandle);
+	if (a)
+		a->parm.capture.extendedmode = pcam_inst->image_mode & 0x7F;
 	return rc;
 }
 static int msm_vidbuf_get_path(u32 extendedmode)
@@ -757,9 +770,23 @@ static int msm_camera_v4l2_subscribe_event(struct v4l2_fh *fh,
 {
 	int rc = 0;
 	struct msm_cam_v4l2_dev_inst *pcam_inst;
+
+	if (!fh || !sub) {
+		pr_err("%s: NULL pointer fh 0x%p sub 0x%p",
+			__func__, fh, sub);
+		return -EINVAL;
+	}
+
 	pcam_inst =
 		(struct msm_cam_v4l2_dev_inst *)container_of(fh,
 		struct msm_cam_v4l2_dev_inst, eventHandle);
+
+	if (!pcam_inst) {
+		pr_err("%s: NULL pointer pcam_inst",
+			__func__);
+		return -EINVAL;
+	}
+
 
 	D("%s:fh = 0x%x, type = 0x%x\n", __func__, (u32)fh, sub->type);
 	if (pcam_inst->my_index != 0)
@@ -778,9 +805,22 @@ static int msm_camera_v4l2_unsubscribe_event(struct v4l2_fh *fh,
 {
 	int rc = 0;
 	struct msm_cam_v4l2_dev_inst *pcam_inst;
+
+	if (!fh || !sub) {
+		pr_err("%s: NULL pointer fh 0x%p sub 0x%p",
+			__func__, fh, sub);
+		return -EINVAL;
+	}
+
 	pcam_inst =
 		(struct msm_cam_v4l2_dev_inst *)container_of(fh,
 		struct msm_cam_v4l2_dev_inst, eventHandle);
+
+	if (!pcam_inst) {
+		pr_err("%s: NULL pointer pcam_inst",
+			__func__);
+		return -EINVAL;
+	}
 
 	D("%s: fh = 0x%x\n", __func__, (u32)fh);
 	if (pcam_inst->my_index != 0)
@@ -849,7 +889,9 @@ static long msm_camera_v4l2_private_ioctl(struct file *file, void *fh,
 		break;
 	}
 	default:
-		pr_err("%s Unsupported ioctl cmd %d ", __func__, cmd);
+		pr_err("%s Unsupported ioctl cmd %d (%d)",
+			__func__, cmd,
+			cmd - MSM_CAM_V4L2_IOCTL_GET_CAMERA_INFO + 1);
 		break;
 	}
 	return rc;
@@ -1306,6 +1348,7 @@ static struct v4l2_file_operations g_msm_fops = {
 static int msm_cam_dev_init(struct msm_cam_v4l2_device *pcam)
 {
 	int rc = -ENOMEM;
+	int check_avdev = -1;
 	struct video_device *pvdev = NULL;
 	struct i2c_client *client = NULL;
 	struct platform_device *pdev = NULL;
@@ -1336,8 +1379,23 @@ static int msm_cam_dev_init(struct msm_cam_v4l2_device *pcam)
 		return rc;
 	}
 
-	strlcpy(pcam->media_dev.model, QCAMERA_NAME,
-			sizeof(pcam->media_dev.model));
+	/* check if sensor has avdev prefix */
+	if (strlen(QAV_SENSOR) <= strlen(pcam->sensor_sdev->name)) {
+		check_avdev = memcmp(QAV_SENSOR, pcam->sensor_sdev->name,
+		strlen(QAV_SENSOR));
+	}
+
+	if (check_avdev == 0) {
+		/* This is an av device that should not be accessed by
+		   camera HAL.*/
+		D("avdev sensor name = %s", pcam->sensor_sdev->name);
+		strlcpy(pcam->media_dev.model, QVIDEO_NAME,
+				sizeof(pcam->media_dev.model));
+	} else {
+		strlcpy(pcam->media_dev.model, QCAMERA_NAME,
+				sizeof(pcam->media_dev.model));
+	}
+
 	rc = media_device_register(&pcam->media_dev);
 	pvdev->v4l2_dev = &pcam->v4l2_dev;
 	pcam->v4l2_dev.mdev = &pcam->media_dev;

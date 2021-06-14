@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, 2015, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -156,13 +156,14 @@ static int msm_vpe_cfg_update(void *pinfo)
 
 void vpe_update_scale_coef(uint32_t *p)
 {
-	uint32_t i, offset;
-	offset = *p;
-	for (i = offset; i < (VPE_SCALE_COEFF_NUM + offset); i++) {
+	uint32_t i;
+	uint32_t offset = *p;
+
+	for (i = 0; i < VPE_SCALE_COEFF_NUM; i++) {
 		msm_camera_io_w(*(++p),
-			vpe_ctrl->vpebase + VPE_SCALE_COEFF_LSBn(i));
+			vpe_ctrl->vpebase + VPE_SCALE_COEFF_LSBn(offset + i));
 		msm_camera_io_w(*(++p),
-			vpe_ctrl->vpebase + VPE_SCALE_COEFF_MSBn(i));
+			vpe_ctrl->vpebase + VPE_SCALE_COEFF_MSBn(offset + i));
 	}
 }
 
@@ -479,6 +480,11 @@ static void vpe_send_outmsg(void)
 		return;
 	}
 	event_qcmd = kzalloc(sizeof(struct msm_queue_cmd), GFP_ATOMIC);
+	if (!event_qcmd) {
+		pr_err("%s No memory for event q cmd", __func__);
+		spin_unlock_irqrestore(&vpe_ctrl->lock, flags);
+		return;
+	}
 	atomic_set(&event_qcmd->on_heap, 1);
 	event_qcmd->command = (void *)vpe_ctrl->pp_frame_info;
 	vpe_ctrl->pp_frame_info = NULL;
@@ -775,7 +781,7 @@ static int msm_vpe_process_vpe_cmd(struct msm_vpe_cfg_cmd *vpe_cmd,
 		break;
 		}
 
-	case VPE_CMD_SCALE_CFG_TYPE:{
+	case VPE_CMD_SCALE_CFG_TYPE: {
 		struct msm_vpe_scaler_cfg scaler_cfg;
 		if (sizeof(struct msm_vpe_scaler_cfg) != vpe_cmd->length) {
 			pr_err("%s: size mismatch cmd=%d, len=%d, expected=%d",
@@ -820,6 +826,19 @@ static int msm_vpe_process_vpe_cmd(struct msm_vpe_cfg_cmd *vpe_cmd,
 		if (rc) {
 			ERR_COPY_FROM_USER();
 			kfree(zoom);
+			break;
+		}
+
+		if ((zoom->pp_frame_cmd.src_frame.num_planes >
+			VIDEO_MAX_PLANES) ||
+			(zoom->pp_frame_cmd.dest_frame.num_planes >
+			VIDEO_MAX_PLANES)) {
+			pr_err("%s: num_planes out of range src %d dest %d",
+				__func__,
+				zoom->pp_frame_cmd.src_frame.num_planes,
+				zoom->pp_frame_cmd.dest_frame.num_planes);
+			kfree(zoom);
+			rc = -EINVAL;
 			break;
 		}
 
@@ -899,7 +918,7 @@ static long msm_vpe_subdev_ioctl(struct v4l2_subdev *sd,
 	mctl = v4l2_get_subdev_hostdata(sd);
 	switch (cmd) {
 	case VIDIOC_MSM_VPE_INIT: {
-		msm_vpe_subdev_init(sd);
+		rc = msm_vpe_subdev_init(sd);
 		break;
 		}
 
@@ -947,8 +966,12 @@ static long msm_vpe_subdev_ioctl(struct v4l2_subdev *sd,
 			pp_event_info.ack.cmd, pp_event_info.ack.status,
 			pp_event_info.ack.cookie);
 		if (copy_to_user((void __user *)v4l2_ioctl->ioctl_ptr,
-			&pp_event_info,	sizeof(struct msm_mctl_pp_event_info)))
+			&pp_event_info,	sizeof(struct msm_mctl_pp_event_info))) {
+			kfree(pp_frame_info);
+			kfree(event_qcmd);
 			pr_err("%s PAYLOAD Copy to user failed ", __func__);
+	                return -EINVAL;
+		 }
 
 		kfree(pp_frame_info);
 		kfree(event_qcmd);

@@ -62,13 +62,6 @@ int mdp_open(struct v4l2_subdev *sd, void *arg)
 		WFD_MSG_ERR("WFD switch registration failed\n");
 		goto mdp_open_fail;
 	}
-	/*Tell HDMI daemon to open fb2*/
-	rc = kobject_uevent(&fbi->dev->kobj, KOBJ_ADD);
-	if (rc) {
-		WFD_MSG_ERR("Failed add to kobj");
-		goto exit;
-	}
-
 	msm_fb_writeback_init(fbi);
 	inst->mdp = fbi;
 	inst->secure = mops->secure;
@@ -97,9 +90,8 @@ int mdp_start(struct v4l2_subdev *sd, void *arg)
 			rc = -ENODEV;
 			goto exit;
 		}
-		rc = kobject_uevent(&fbi->dev->kobj, KOBJ_ONLINE);
-		if (rc)
-			WFD_MSG_ERR("Failed to send ONLINE event\n");
+		switch_set_state(&inst->sdev, true);
+		WFD_MSG_DBG("wfd state switched to %d\n", inst->sdev.state);
 	}
 exit:
 	return rc;
@@ -115,12 +107,6 @@ int mdp_stop(struct v4l2_subdev *sd, void *arg)
 		if (rc) {
 			WFD_MSG_ERR("Failed to stop writeback mode\n");
 			return rc;
-		}
-		fbi = (struct fb_info *)inst->mdp;
-		rc = kobject_uevent(&fbi->dev->kobj, KOBJ_OFFLINE);
-		if (rc) {
-			WFD_MSG_ERR("Failed to send offline event\n");
-			return -EIO;
 		}
 		fbi = (struct fb_info *)inst->mdp;
 		switch_set_state(&inst->sdev, false);

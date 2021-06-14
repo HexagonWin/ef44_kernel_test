@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2012, 2015 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -140,6 +140,14 @@ static struct msm_isp_color_fmt msm_isp_formats[] = {
 	.colorspace = V4L2_COLORSPACE_JPEG,
 	},
 	{
+	.name	   = "UYVY",
+	.depth	  = 16,
+	.bitsperpxl = 16,
+	.fourcc	 = V4L2_PIX_FMT_UYVY,
+	.pxlcode	= V4L2_MBUS_FMT_UYVY8_2X8, /* YUV sensor */
+	.colorspace = V4L2_COLORSPACE_SMPTE170M,
+	},
+	{
 	.name	   = "SAEC",
 	.depth	  = 16,
 	.bitsperpxl = 16,
@@ -254,8 +262,13 @@ static int msm_mctl_add_intf_to_mctl_map(
 
 	mctl_handle = msm_cam_find_handle_from_mctl_ptr(p_mctl);
 	if (mctl_handle == 0) {
-		pr_err("%s Error in finding handle from mctl_ptr, rc = %d",
-			__func__, rc);
+		pr_err("%s Error in finding handle from mctl_ptr",
+				__func__);
+		return -EFAULT;
+	}
+	if (intf_map->num_entries > MSM_V4L2_EXT_CAPTURE_MODE_MAX) {
+		pr_err("%s Error num_entries exceeds max %d",
+				__func__, intf_map->num_entries);
 		return -EFAULT;
 	}
 	for (i = 0; i < intf_map->num_entries; i++) {
