@@ -675,9 +675,9 @@ static int gser_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 #endif
 
 	gser->online = 1;
-#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
+/*#ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
 	usb_interface_enum_cb(ACM_TYPE_FLAG);
-#endif
+#endif*/
 	return rc;
 }
 
@@ -874,7 +874,7 @@ gser_bind(struct usb_configuration *c, struct usb_function *f)
 	int			status;
 	struct usb_ep		*ep;
 
-	/* allocate instance-specific interface IDs */
+	/* allocate instance-specific interface IDs */ /*
 #if defined(CONFIG_ANDROID_PANTECH_USB)
 //	if((pantech_usb_carrier != CARRIER_QUALCOMM) && b_pantech_usb_module){
 	if(pantech_usb_carrier != CARRIER_QUALCOMM){
@@ -911,7 +911,7 @@ gser_bind(struct usb_configuration *c, struct usb_function *f)
 		goto fail;
 	gser->data_id = status;
 	gser_interface_desc.bInterfaceNumber = status;
-#endif
+#endif */
 
 	status = -ENODEV;
 

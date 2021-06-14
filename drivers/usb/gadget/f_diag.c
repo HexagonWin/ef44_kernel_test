@@ -21,7 +21,7 @@
 #include <linux/ratelimit.h>
 
 #include <mach/usbdiag.h>
-
+#include <mach/rpc_hsusb.h>
 #include <linux/usb/composite.h>
 #include <linux/usb/gadget.h>
 #include <linux/workqueue.h>
@@ -600,10 +600,10 @@ static int diag_function_set_alt(struct usb_function *f,
 
 	if (dev->ch.notify)
 		dev->ch.notify(dev->ch.priv, USB_DIAG_CONNECT, NULL);
-
+/*
 #ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
 	usb_interface_enum_cb(DIAG_TYPE_FLAG);
-#endif
+#endif*/
 	return rc;
 }
 
@@ -626,7 +626,7 @@ static int diag_function_bind(struct usb_configuration *c,
 	struct diag_context *ctxt = func_to_diag(f);
 	struct usb_ep *ep;
 	int status = -ENODEV;
-
+/*
 #if defined(CONFIG_ANDROID_PANTECH_USB)
 //	if(()pantech_usb_carrier != CARRIER_QUALCOMM) && b_pantech_usb_module){
 	if(pantech_usb_carrier != CARRIER_QUALCOMM){
@@ -636,7 +636,7 @@ static int diag_function_bind(struct usb_configuration *c,
 		intf_desc.bInterfaceSubClass = 0xFF;
 		intf_desc.bInterfaceProtocol = 0xFF;
 	}
-#endif
+#endif*/
 
 	intf_desc.bInterfaceNumber =  usb_interface_id(c, f);
 

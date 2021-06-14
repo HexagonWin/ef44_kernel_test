@@ -2643,7 +2643,7 @@ static int fsg_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 	common->bulk_out_maxpacket = le16_to_cpu(fsg->bulk_in->desc->wMaxPacketSize);
 	clear_bit(IGNORE_BULK_OUT, &fsg->atomic_bitflags);
 	fsg->common->new_fsg = fsg;
-	raise_exception(fsg->common, FSG_STATE_CONFIG_CHANGE);
+	raise_exception(fsg->common, FSG_STATE_CONFIG_CHANGE);/*
 #ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
 #ifdef CONFIG_ANDROID_PANTECH_USB_CDFREE
 	if(pantech_cdrom_enabled){
@@ -2658,7 +2658,7 @@ static int fsg_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 #else
 	usb_interface_enum_cb(MSC_TYPE_FLAG);
 #endif
-#endif
+#endif*/
 	return USB_GADGET_DELAYED_STATUS;
 
 reset_bulk_int:

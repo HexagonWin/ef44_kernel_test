@@ -367,7 +367,7 @@ printk(KERN_ERR "%s:disable_depth[%d]", __func__, dev->disable_depth);
 }
 
 #ifdef CONFIG_ANDROID_PANTECH_USB_MANAGER
-#include "pantech_android.c"
+//#include "pantech_android.c"
 #endif
 
 /*-------------------------------------------------------------------------*/
