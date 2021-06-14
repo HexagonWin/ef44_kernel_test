@@ -590,7 +590,6 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		if (panel[MDP4_MIXER0] & MDP4_PANEL_LCDC)
 			mdp4_dmap_done_lcdc(0);
 #ifdef CONFIG_FB_MSM_OVERLAY
-#ifdef CONFIG_FB_MSM_OVERLAY
 #ifdef CONFIG_FB_MSM_MIPI_DSI
 		else if (panel[MDP4_MIXER0] & MDP4_PANEL_DSI_VIDEO)
 			mdp4_dmap_done_dsi_video(0);
@@ -611,14 +610,6 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 			spin_unlock(&mdp_spin_lock);
 			complete(&dma->comp);
 		}
-#endif
-		}
-	if (isr & INTR_DMA_S_DONE) {
-		mdp4_stat.intr_dma_s++;
-#if defined(CONFIG_FB_MSM_OVERLAY) && defined(CONFIG_FB_MSM_MDDI)
-		dma = &dma2_data;
-#else
-		dma = &dma_s_data;
 #endif
 	}
 	if (isr & INTR_DMA_S_DONE) {
@@ -697,11 +688,8 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 			mdp4_primary_vsync_lcdc();
 		else if (panel[MDP4_MIXER0] & MDP4_PANEL_DSI_VIDEO)
 			mdp4_primary_vsync_dsi_video();
-	if (isr & INTR_EXTERNAL_VSYNC) {
-		mdp4_stat.intr_vsync_e++;
-		if (panel & MDP4_PANEL_DTV)
-			mdp4_external_vsync_dtv();
 	}
+
 	if (isr & INTR_SECONDARY_VSYNC) {
 		mdp4_stat.intr_vsync_s++;
 		if (panel[MDP4_MIXER_NONE] & MDP4_PANEL_LCDC)
@@ -714,6 +702,7 @@ irqreturn_t mdp4_isr(int irq, void *ptr)
 		mdp4_stat.intr_vsync_e++;
 		if (panel[MDP4_MIXER1] & MDP4_PANEL_DTV)
 			mdp4_external_vsync_dtv();
+	}
 	if (isr & INTR_DMA_P_HISTOGRAM) {
 		mdp4_stat.intr_histogram++;
 		ret = mdp_histogram_block2mgmt(MDP_BLOCK_DMA_P, &mgmt);
@@ -3274,19 +3263,3 @@ int mdp4_calib_config(struct mdp_calib_config_data *cfg)
 	mdp_clk_ctrl(0);
 	return ret;
 }
-
-#if defined(CONFIG_QUALCOMM_BUG_FIX_BLENDING)
-u32 mdp4_get_mixer_num(u32 panel_type)
-{
-	u32 mixer_num;
-	if ((panel_type == TV_PANEL) ||
-			(panel_type == DTV_PANEL))
-		mixer_num = MDP4_MIXER1;
-	else if (panel_type == WRITEBACK_PANEL) {
-		mixer_num = MDP4_MIXER2;
-	} else {
-		mixer_num = MDP4_MIXER0;
-	}
-	return mixer_num;
-}
-#endif

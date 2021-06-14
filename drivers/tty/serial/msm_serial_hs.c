@@ -1122,45 +1122,6 @@ unsigned int msm_hs_tx_empty(struct uart_port *uport)
 }
 EXPORT_SYMBOL(msm_hs_tx_empty);
 
-#if 1 //brcm-test
-struct uart_port* msm_hs_get_bt_uport(unsigned int line)
-{
-     return &q_uart_port[line].uport;
-}
-EXPORT_SYMBOL(msm_hs_get_bt_uport);
-
-// Get UART Clock State : 
-int msm_hs_get_bt_uport_clock_state(struct uart_port *uport)
-{
-	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
-	//unsigned long flags;	
-	int ret = CLOCK_REQUEST_UNAVAILABLE;
-
-	//mutex_lock(&msm_uport->clk_mutex);
-	//spin_lock_irqsave(&uport->lock, flags);
-
-	switch(msm_uport->clk_state)
-	{
-		case MSM_HS_CLK_ON:
-		case MSM_HS_CLK_PORT_OFF:
-			printk(KERN_ERR "UART Clock already on or port not use : %d\n", msm_uport->clk_state);
-			ret = CLOCK_REQUEST_UNAVAILABLE;
-			break;
-		case MSM_HS_CLK_REQUEST_OFF:
-		case MSM_HS_CLK_OFF:
-			printk(KERN_ERR "Uart clock off. Please clock on : %d\n", msm_uport->clk_state);
-			ret = CLOCK_REQUEST_AVAILABLE;
-			break;
-	}
-
-	//spin_unlock_irqrestore(&uport->lock, flags);
-	//mutex_unlock(&msm_uport->clk_mutex);
-
-	return ret;
-}
-EXPORT_SYMBOL(msm_hs_get_bt_uport_clock_state);
-
-#endif
 /*
  *  Standard API, Stop transmitter.
  *  Any character in the transmit shift register is sent as
@@ -1716,10 +1677,6 @@ static void msm_hs_enable_ms_locked(struct uart_port *uport)
 	mb();
 
 }
-#ifndef CONFIG_MACH_MSM8960_EF44S  // [LS3]KSCHOI 20130207, uart gpio not active	
-static void msm_hs_flush_buffer(struct uart_port *uport)
-{
-	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
 
 static void msm_hs_flush_buffer_locked(struct uart_port *uport)
 {
@@ -2001,17 +1958,6 @@ static irqreturn_t msm_hs_isr(int irq, void *dev)
 		 */
 		mb();
 		/* Complete DMA TX transactions and submit new transactions */
-
-#ifndef CONFIG_MACH_MSM8960_EF44S  // [LS3]KSCHOI 20130207, uart gpio not active	
-		/* Do not update tx_buf.tail if uart_flush_buffer already
-						called in serial core */
-		if (!msm_uport->tty_flush_receive)
-			tx_buf->tail = (tx_buf->tail +
-					tx->tx_count) & ~UART_XMIT_SIZE;
-		else
-			msm_uport->tty_flush_receive = false;
-#else
-#endif
 
 		/* Do not update tx_buf.tail if uart_flush_buffer already
 						called in serial core */
@@ -2814,7 +2760,6 @@ static void msm_hs_shutdown(struct uart_port *uport)
 
 	if (pdata && pdata->config_gpio)
 			msm_hs_unconfig_uart_gpios(uport);
-			dev_err(uport->dev, "GPIO config error\n");
 }
 
 static void __exit msm_serial_hs_exit(void)
@@ -2839,11 +2784,6 @@ static int msm_hs_runtime_resume(struct device *dev)
 	struct platform_device *pdev = container_of(dev, struct
 						    platform_device, dev);
 	struct msm_hs_port *msm_uport = &q_uart_port[pdev->id];
-
-#if 1
-	if(pdev->id == 0) return 0;  // BT uart. p12912-NOL
-#endif
-	
 	msm_hs_request_clock_on(&msm_uport->uport);
 	return 0;
 }
@@ -2853,11 +2793,6 @@ static int msm_hs_runtime_suspend(struct device *dev)
 	struct platform_device *pdev = container_of(dev, struct
 						    platform_device, dev);
 	struct msm_hs_port *msm_uport = &q_uart_port[pdev->id];
-
-#if 1
-	if(pdev->id == 0) return 0;  // BT uart. p12912-NOL
-#endif
-
 	msm_hs_request_clock_off(&msm_uport->uport);
 	return 0;
 }
@@ -2903,21 +2838,10 @@ static struct uart_ops msm_hs_ops = {
 	.request_port = msm_hs_request_port,
 	.flush_buffer = msm_hs_flush_buffer_locked,
 	.ioctl = msm_hs_ioctl,
-#endif
 };
-
-#if 0
-struct uart_port* msm_hs_get_bt_uport(unsigned int line)
-{
-	return &q_uart_port[line].uport;
-}
-EXPORT_SYMBOL(msm_hs_get_bt_uport);
-#endif
 
 module_init(msm_serial_hs_init);
 module_exit(msm_serial_hs_exit);
 MODULE_DESCRIPTION("High Speed UART Driver for the MSM chipset");
 MODULE_VERSION("1.2");
 MODULE_LICENSE("GPL v2");
-
-

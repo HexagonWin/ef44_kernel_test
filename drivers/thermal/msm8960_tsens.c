@@ -679,12 +679,6 @@ static irqreturn_t tsens_isr(int irq, void *data)
 {
 	schedule_work(&tmdev->tsens_work);
 
-}
-
-static irqreturn_t tsens_isr(int irq, void *data)
-{
-	schedule_work(&tmdev->tsens_work);
-
 	return IRQ_HANDLED;
 }
 

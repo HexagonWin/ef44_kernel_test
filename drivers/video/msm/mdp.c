@@ -1155,7 +1155,6 @@ int mdp_histogram_stop(struct fb_info *info, uint32_t block)
 
 	if (!mfd->panel_power_on) {
 		if (mgmt->hist != NULL) {
-		if (mgmt->hist != NULL) {
 			mgmt->hist = NULL;
 			complete(&mgmt->mdp_hist_comp);
 		}
@@ -1482,17 +1481,6 @@ ssize_t mdp_dma_show_event(struct device *dev,
 	if (atomic_read(&vsync_cntrl.suspend) > 0 ||
 		atomic_read(&vsync_cntrl.vsync_resume) == 0)
 		return 0;
-
-	INIT_COMPLETION(vsync_cntrl.vsync_wait);
-
-	wait_for_completion(&vsync_cntrl.vsync_wait);
-	ret = snprintf(buf, PAGE_SIZE, "VSYNC=%llu",
-			ktime_to_ns(vsync_cntrl.vsync_time));
-	buf[strlen(buf) + 1] = '\0';
-	return ret;
-}
-
-/* Returns < 0 on error, 0 on timeout, or > 0 on successful wait */
 
 	INIT_COMPLETION(vsync_cntrl.vsync_wait);
 
@@ -2907,7 +2895,6 @@ static int mdp_off(struct platform_device *pdev)
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	ret = panel_next_off(pdev);
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-	mdp_clk_ctrl(0);
 
 	mdp_clk_ctrl(0);
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -2945,7 +2932,7 @@ static int mdp_on(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	if(mfd->index == 0)
 		mdp_iommu_max_map_size = mfd->max_map_size;
 
@@ -2967,24 +2954,8 @@ static int mdp_on(struct platform_device *pdev)
 			}
 			mdp_lut_status_restore();
 			outpdw(MDP_BASE + 0x0038, mdp4_display_intf);
-		if (mfd->panel.type == MIPI_CMD_PANEL) {
-			mdp_vsync_cfg_regs(mfd, FALSE);
-			mdp4_dsi_cmd_on(pdev);
-		} else if (mfd->panel.type == MIPI_VIDEO_PANEL) {
-			mdp4_dsi_video_on(pdev);
-		} else if (mfd->panel.type == HDMI_PANEL ||
-				mfd->panel.type == LCDC_PANEL ||
-				mfd->panel.type == LVDS_PANEL) {
-			mdp4_lcdc_on(pdev);
 		}
 		mdp_on_init_cnt++;
-		mdp_clk_ctrl(0);
-
-	if (mdp_rev == MDP_REV_303 && mfd->panel.type == MIPI_CMD_PANEL) {
-
-		vsync_cntrl.dev = mfd->fbi->dev;
-		atomic_set(&vsync_cntrl.suspend, 1);
-	}
 
 		if (mfd->panel.type == MIPI_CMD_PANEL) {
 			mdp_vsync_cfg_regs(mfd, FALSE);
@@ -3009,8 +2980,8 @@ static int mdp_on(struct platform_device *pdev)
 		vsync_cntrl.dev = mfd->fbi->dev;
 		atomic_set(&vsync_cntrl.suspend, 1);
 	}
+
 	mdp_histogram_ctrl_all(TRUE);
-	pr_debug("%s:-\n", __func__);
 
 	if (ret == 0)
 		ret = panel_next_late_init(pdev);
@@ -3109,6 +3080,7 @@ static uint32 mdp_recovery_get_ack_num(int display_id,
 				enum mdp_recovery_error_type err_type);
 
 static int mdp_panel_error_cb(struct platform_device *pdev)
+{
 	int rc = 0;
 	struct msm_fb_panel_data *pdata = NULL;
 	if (!pdev) {
@@ -3625,6 +3597,8 @@ static void mdp_recovery_retry_timer_handler(unsigned long param)
 void mdp_recovery_debug(int debug_flag)
 {
 	recovery_ctx->debug_flag = debug_flag;
+}
+
 #ifdef CONFIG_MSM_BUS_SCALING
 
 #ifndef MDP_BUS_VECTOR_ENTRY_P0
@@ -3951,8 +3925,6 @@ static int mdp_probe(struct platform_device *pdev)
 		if (rc)
 			return rc;
 
-		mdp_clk_ctrl(1);
-
 		mdp_hw_version();
 
 		/* initializing mdp hw */
@@ -3966,10 +3938,6 @@ static int mdp_probe(struct platform_device *pdev)
 #ifdef CONFIG_FB_MSM_OVERLAY
 		mdp_hw_cursor_init();
 #endif
-
-		if (!(mdp_pdata->cont_splash_enabled))
-			mdp_clk_ctrl(0);
-
 		mdp_resource_initialized = 1;
 		return 0;
 	}
@@ -3997,7 +3965,6 @@ static int mdp_probe(struct platform_device *pdev)
 	mfd->mdp_rev = mdp_rev;
 	mfd->vsync_init = NULL;
 
-				if (mfd->panel.type == MIPI_VIDEO_PANEL)
 	mfd->ov0_wb_buf = MDP_ALLOC(sizeof(struct mdp_buf_type));
 	mfd->ov1_wb_buf = MDP_ALLOC(sizeof(struct mdp_buf_type));
 	memset((void *)mfd->ov0_wb_buf, 0, sizeof(struct mdp_buf_type));
@@ -4421,12 +4388,6 @@ static int mdp_probe(struct platform_device *pdev)
 				     mdp_max_bw);
 #endif
 
-#ifdef CONFIG_FB_MSM_LOGO  //KERNEL LOGO DISPLAY ejkim_add
-	if (mfd->vsync_init != NULL) {
-		mfd->vsync_init(0);			
-	}
-#endif	
-
 	/* set driver data */
 	platform_set_drvdata(msm_fb_dev, mfd);
 
@@ -4461,8 +4422,6 @@ static int mdp_probe(struct platform_device *pdev)
 			kobject_uevent(&mfd->fbi->dev->kobj, KOBJ_ADD);
 			pr_debug("%s: kobject_uevent(KOBJ_ADD)\n", __func__);
 			mfd->vsync_sysfs_created = 1;
-		}
-	}
 		}
 	}
 	return 0;

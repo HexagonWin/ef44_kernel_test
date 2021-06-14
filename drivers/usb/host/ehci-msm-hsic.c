@@ -1086,9 +1086,6 @@ static int ehci_hsic_bus_suspend(struct usb_hcd *hcd)
 }
 
 static int msm_hsic_resume_thread(void *data)
-#define RESUME_SIGNAL_TIME_MS		(21 * 999)
-#define RESUME_SIGNAL_TIME_SOF_MS	(23 * 999)
-static int msm_hsic_resume_thread(void *data)
 {
 	struct msm_hsic_hcd *mehci = data;
 	struct usb_hcd *hcd = hsic_to_hcd(mehci);
@@ -1968,16 +1965,6 @@ static int msm_hsic_pm_resume(struct device *dev)
 
 	if (device_may_wakeup(dev))
 		disable_irq_wake(hcd->irq);
-
-	/*
-	 * Keep HSIC in Low Power Mode if system is resumed
-	 * by any other wakeup source.  HSIC is resumed later
-	 * when remote wakeup is received or interface driver
-	 * start I/O.
-	 */
-	if (!atomic_read(&mehci->pm_usage_cnt) &&
-			pm_runtime_suspended(dev))
-		return 0;
 
 	/*
 	 * Keep HSIC in Low Power Mode if system is resumed

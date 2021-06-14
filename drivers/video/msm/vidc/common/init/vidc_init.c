@@ -432,8 +432,6 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 				if (!res_trk_check_for_sec_session() &&
 				   (res_trk_get_core_type() !=
 				   (u32)VCD_CORE_720P)) {
-				   (res_trk_get_core_type() !=
-				   (u32)VCD_CORE_720P)) {
 					ion_unmap_iommu(
 						client_ctx->user_ion_client,
 						buf_addr_table[i].
@@ -731,7 +729,6 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 			}
 			if (res_trk_check_for_sec_session() ||
 			   (res_trk_get_core_type() == (u32)VCD_CORE_720P)) {
-			   (res_trk_get_core_type() == (u32)VCD_CORE_720P)) {
 				if (ion_phys(client_ctx->user_ion_client,
 					buff_ion_handle,
 					&phys_addr, &ion_len)) {
@@ -757,7 +754,6 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 				if (ret || !iova) {
 					ERR(
 					"%s():ION iommu map fail, ret = %d, iova = 0x%lx\n",
-						__func__, ret, iova);
 						__func__, ret, iova);
 					goto ion_map_error;
 				}
@@ -912,7 +908,6 @@ u32 vidc_delete_addr_table(struct video_client_ctx *client_ctx,
 	*kernel_vaddr = buf_addr_table[i].kernel_vaddr;
 	if (buf_addr_table[i].buff_ion_handle) {
 		if (!res_trk_check_for_sec_session() &&
-		   (res_trk_get_core_type() != (u32)VCD_CORE_720P)) {
 		   (res_trk_get_core_type() != (u32)VCD_CORE_720P)) {
 			ion_unmap_iommu(client_ctx->user_ion_client,
 				buf_addr_table[i].buff_ion_handle,

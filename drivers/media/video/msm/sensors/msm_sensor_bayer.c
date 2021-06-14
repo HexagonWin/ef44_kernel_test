@@ -18,6 +18,7 @@
 
 #define I2C_SEQ_REG_DATA_MAX    256
 /*=============================================================*/
+/* Reason : Give multiple defenition error.
 
 long msm_sensor_bayer_subdev_ioctl(struct v4l2_subdev *sd,
 			unsigned int cmd, void *arg)
@@ -38,7 +39,7 @@ long msm_sensor_bayer_subdev_ioctl(struct v4l2_subdev *sd,
 	default:
 		return -ENOIOCTLCMD;
 	}
-}
+}*/
 
 int32_t msm_sensor_bayer_get_csi_params(struct msm_sensor_ctrl_t *s_ctrl,
 		struct csi_lane_params_t *sensor_output_info)

@@ -612,11 +612,6 @@ static void diag_function_unbind(struct usb_configuration *c,
 {
 	struct diag_context *ctxt = func_to_diag(f);
 
-#ifdef FEATURE_PANTECH_CLEAR_WORK_QUEUE
-	//tarial bug fix
-	cancel_work_sync(&ctxt->config_work);
-#endif
-
 	if (gadget_is_dualspeed(c->cdev->gadget))
 		usb_free_descriptors(f->hs_descriptors);
 

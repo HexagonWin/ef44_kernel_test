@@ -159,7 +159,6 @@ static int ffs_nr(u32 x)
 
 static void dbg_usb_op_fail(u8 addr, const char *name,
 				const struct ci13xxx_ep *mep);
-				const struct ci13xxx_ep *mep);
 /**
  * hw_ep_bit: calculates the bit number
  * @num: endpoint number
@@ -395,7 +394,6 @@ static void debug_ept_flush_info(struct ci13xxx *udc, int ep_num, int dir)
 	pr_err_ratelimited("ENDPTSTAT:%x\n", hw_cread(udc, CAP_ENDPTSTAT, ~0));
 
 	dbg_usb_op_fail(0xFF, "FLUSHF", mep);
-}
 }
 /**
  * hw_ep_flush: flush endpoint fifo (execute without interruption)
@@ -3356,7 +3354,6 @@ static int ci13xxx_pullup(struct usb_gadget *_gadget, int is_active)
 
 	spin_lock_irqsave(&udc->lock, flags);
 	pantech_init_device_mode_change();
-#endif
 
 	udc->softconnect = is_active;
 	if (((udc->udc_driver->flags & CI13XXX_PULLUP_ON_VBUS) &&

@@ -1,27 +1,27 @@
 GCC_VERSION      := $(shell $(CONFIG_SHELL) $(PWD)/scripts/gcc-version.sh $(CROSS_COMPILE)gcc)
 
-ccflags-y += -Idrivers/media/video/msm/io
+#ccflags-y += -Idrivers/media/video/msm/io
 ccflags-y += -Idrivers/media/video/msm/vfe
-obj-$(CONFIG_MSM_CAMERA) += io/
-ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/cci
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/csi
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/eeprom
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/sensors
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/actuators
-  EXTRA_CFLAGS += -Idrivers/media/video/msm/server
-  obj-$(CONFIG_MSM_CAMERA) += msm_isp.o msm.o msm_mem.o msm_mctl.o msm_mctl_buf.o msm_mctl_pp.o
-  obj-$(CONFIG_MSM_CAMERA) += server/
-  obj-$(CONFIG_MSM_CAM_IRQ_ROUTER) += msm_camirq_router.o
-  obj-$(CONFIG_MSM_CAMERA) += cci/ eeprom/ sensors/ actuators/ csi/
-  obj-$(CONFIG_MSM_CPP) += cpp/
-  obj-$(CONFIG_MSM_CAMERA) += msm_gesture.o
-else
+#obj-$(CONFIG_MSM_CAMERA) += io/
+#ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
+#  EXTRA_CFLAGS += -Idrivers/media/video/msm/cci
+#  EXTRA_CFLAGS += -Idrivers/media/video/msm/csi
+#  EXTRA_CFLAGS += -Idrivers/media/video/msm/eeprom
+#  EXTRA_CFLAGS += -Idrivers/media/video/msm/sensors
+#  EXTRA_CFLAGS += -Idrivers/media/video/msm/actuators
+#  EXTRA_CFLAGS += -Idrivers/media/video/msm/server
+#  obj-$(CONFIG_MSM_CAMERA) += msm_isp.o msm.o msm_mem.o msm_mctl.o msm_mctl_buf.o msm_mctl_pp.o
+#  obj-$(CONFIG_MSM_CAMERA) += server/
+#  obj-$(CONFIG_MSM_CAM_IRQ_ROUTER) += msm_camirq_router.o
+#  obj-$(CONFIG_MSM_CAMERA) += cci/ eeprom/ sensors/ actuators/
+#  obj-$(CONFIG_MSM_CPP) += cpp/
+#  obj-$(CONFIG_MSM_CAMERA) += msm_gesture.o
+#else
   obj-$(CONFIG_MSM_CAMERA) += msm_camera.o
-endif
+#endif
 obj-$(CONFIG_MSM_CAMERA) += vfe/
 obj-$(CONFIG_MSM_CAMERA) += msm_axi_qos.o gemini/ mercury/ jpeg_10/
-obj-$(CONFIG_MSM_CAMERA_FLASH) += flash.o
+#obj-$(CONFIG_MSM_CAMERA_FLASH) += flash.o
 obj-$(CONFIG_SWITCH_REVERSE) += adp_camera.o
 ifeq ($(CONFIG_MSM_CAMERA_V4L2),y)
   obj-$(CONFIG_ARCH_MSM8X60) += msm_vpe.o

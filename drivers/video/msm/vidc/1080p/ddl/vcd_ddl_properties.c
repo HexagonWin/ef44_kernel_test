@@ -1226,19 +1226,6 @@ static u32 ddl_set_enc_property(struct ddl_client_context *ddl,
 		}
 		break;
 	}
-	{
-		struct vcd_property_vui_timing_info_enable *vui_timing_enable =
-			(struct vcd_property_vui_timing_info_enable *)
-				property_value;
-		if (sizeof(struct vcd_property_vui_timing_info_enable) ==
-			property_hdr->sz &&
-			encoder->codec.codec == VCD_CODEC_H264) {
-			encoder->vui_timinginfo_enable =
-			vui_timing_enable->vui_timing_info;
-			vcd_status = VCD_S_SUCCESS;
-		}
-		break;
-	}
 	default:
 		DDL_MSG_ERROR("%s: INVALID ID 0x%x\n", __func__,
 			(int)property_hdr->prop_id);

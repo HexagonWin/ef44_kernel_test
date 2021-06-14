@@ -23,7 +23,7 @@
 #include <mach/pmic.h>
 #include <mach/camera.h>
 #include <mach/gpio.h>
-#include "msm_camera_i2c.h"
+//#include "msm_camera_i2c.h"
 
 struct flash_work {
 	struct work_struct my_work;
@@ -55,10 +55,10 @@ static int sc628a_i2c_probe(struct i2c_client *client,
 	int rc = 0;
 	CDBG("sc628a_probe called!\n");
 
-	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+/*	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		pr_err("i2c_check_functionality failed\n");
 		goto probe_failure;
-	}
+	}*/
 
 	sc628a_client = client;
 

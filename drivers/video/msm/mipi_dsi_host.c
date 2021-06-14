@@ -1045,10 +1045,13 @@ void mipi_dsi_op_mode_config(int mode)
 
 void mipi_dsi_wait4video_done(void)
 {
-	mutex_lock(&cmd_mutex);
-	mutex_unlock(&cmd_mutex);
+	unsigned long flag;
+
+	spin_lock_irqsave(&dsi_mdp_lock, flag);
 	INIT_COMPLETION(dsi_video_comp);
 	mipi_dsi_enable_irq(DSI_VIDEO_TERM);
+	spin_unlock_irqrestore(&dsi_mdp_lock, flag);
+
 	wait_for_completion_timeout(&dsi_video_comp,
 					msecs_to_jiffies(VSYNC_PERIOD * 4));
 }
@@ -1059,6 +1062,7 @@ void mipi_dsi_mdp_busy_wait(void)
 	mipi_dsi_cmd_mdp_busy();
 	mutex_unlock(&cmd_mutex);
 }
+
 void mipi_dsi_cmd_mdp_start(void)
 {
 	unsigned long flag;
@@ -1244,6 +1248,7 @@ int mipi_dsi_cmds_single_tx(struct dsi_buf *tp, struct dsi_cmd_desc *cmds,
 	tp->len = cmd_len;
 	mipi_dsi_cmd_dma_tx(tp);
 	kfree(cmds_tx);
+
 	if (video_mode)
 		MIPI_OUTP(MIPI_DSI_BASE + 0x0000, dsi_ctrl); /* restore */
 
@@ -1329,7 +1334,6 @@ int mipi_dsi_cmds_rx(struct msm_fb_data_type *mfd,
 	/* transmit read comamnd to client */
 	mipi_dsi_cmd_dma_tx(tp);
 
-	mipi_dsi_disable_irq(DSI_CMD_TERM);
 	/*
 	 * once cmd_dma_done interrupt received,
 	 * return data from client is ready and stored
@@ -1492,10 +1496,8 @@ int mipi_dsi_cmds_rx_new(struct dsi_buf *tp, struct dsi_buf *rp,
 	return rp->len;
 }
 
-
 int mipi_dsi_cmd_dma_tx(struct dsi_buf *tp)
 {
-	unsigned long flags;
 	unsigned long flags;
 
 #ifdef DSI_HOST_DEBUG
@@ -1537,7 +1539,6 @@ int mipi_dsi_cmd_dma_tx(struct dsi_buf *tp)
 					msecs_to_jiffies(200))) {
 		pr_err("%s: dma timeout error\n", __func__);
 	}
-#endif
 
 	dma_unmap_single(&dsi_dev, tp->dmap, tp->len, DMA_TO_DEVICE);
 	tp->dmap = 0;
@@ -1730,9 +1731,6 @@ int mipi_dsi_cmdlist_put(struct dcs_cmd_req *cmdreq)
 
 	if (req->flags & CMD_CLK_CTRL)
 		mipi_dsi_clk_cfg(0);
-
-	return ret;
-}
 
 	return ret;
 }

@@ -961,11 +961,6 @@ static inline int msmfb_overlay_vsync_ctrl(struct fb_info *info,
 {
 	return 0;
 }
-static inline int msmfb_overlay_vsync_ctrl(struct fb_info *info,
-						void __user *argp)
-{
-	return 0;
-}
 #endif
 
 int mdp_ppp_v4l2_overlay_set(struct fb_info *info, struct mdp_overlay *req);

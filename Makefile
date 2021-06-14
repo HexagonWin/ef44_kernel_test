@@ -376,7 +376,8 @@ KBUILD_CFLAGS   := -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-format-security \
 		   -Wno-error=maybe-uninitialized \
 		   -Wno-error=declaration-after-statement \
-		   -fno-delete-null-pointer-checks
+		   -fno-delete-null-pointer-checks \
+		   -$(call cc-disable-warning,uninitialized,)
 
 #// 20120105, albatros, imei 주소값의 공용으로 사용을 위해서
 ifeq ($(OEM_PRODUCT_MANUFACTURER),PANTECH)

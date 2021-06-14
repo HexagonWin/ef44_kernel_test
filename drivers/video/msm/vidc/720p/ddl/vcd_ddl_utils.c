@@ -156,7 +156,6 @@ void ddl_pmem_alloc(struct ddl_buf_addr *buff_addr, size_t sz, u32 align)
 			(u32)buff_addr->virtual_base_addr,
 			alloc_size, align, len);
 	} else {
-	} else {
 		physical_addr = (u32)
 			allocate_contiguous_memory_nomap(alloc_size,
 						ddl_context->memtype, SZ_4K);

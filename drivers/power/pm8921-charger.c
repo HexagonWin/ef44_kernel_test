@@ -21,12 +21,15 @@
 #include <linux/mfd/pm8xxx/pm8xxx-adc.h>
 #include <linux/mfd/pm8xxx/ccadc.h>
 #include <linux/mfd/pm8xxx/core.h>
+#include <linux/regulator/consumer.h>
 #include <linux/interrupt.h>
 #include <linux/delay.h>
 #include <linux/bitops.h>
 #include <linux/workqueue.h>
 #include <linux/debugfs.h>
 #include <linux/slab.h>
+#include <linux/mfd/pm8xxx/batt-alarm.h>
+#include <linux/ratelimit.h>
 #if defined(CONFIG_PANTECH_CHARGER_WIRELESS)
 #include <mach/gpio.h>
 #include <mach/gpiomux.h>
@@ -2059,10 +2062,6 @@ struct pm8921_chg_chip {
 	int				rconn_mohm;
 	enum pm8921_chg_led_src_config	led_src_config;
 	
-#if defined(CONFIG_HAS_EARLYSUSPEND)
-	struct early_suspend early_suspend;
-	bool is_early_suspend;
-#endif
 	struct delayed_work	usb_ov_irq_check_work;		//20130127 djjeon, PMIC , USB OverVoltage ckeck usb_ov_irq delay work
 	struct delayed_work	usb_ov_irq_count_work;		//20130127 djjeon, PMIC , USB OverVoltage ckeck usb_ov_irq count work
 #if defined(CONFIG_PANTECH_CHARGER)
@@ -3523,11 +3522,7 @@ static void bms_notify(struct work_struct *work)
 		}
 		#endif
 
-		if (!chip->is_early_suspend)
-			power_supply_changed(&chip->batt_psy);
-                else if (soc != old_soc)
-		//else if (soc <= NOTIFY_THR_IN_SLEEP && soc != old_soc)
-			power_supply_changed(&chip->batt_psy);
+		power_supply_changed(&chip->batt_psy);
 
 		#if defined(CONFIG_PANTECH_PMIC_MAX17058)
 		if (max17058_uses)
@@ -7802,21 +7797,8 @@ static int pm8921_charger_suspend(struct device *dev)
 #define pm8921_charger_resume_noirq NULL
 #endif // #if defined(CONFIG_PM)
 
-#if defined(CONFIG_HAS_EARLYSUSPEND)
-static void pm8921_charger_pm_early_suspend(struct early_suspend *h)
-{
-	the_chip->is_early_suspend = true;
-}
-
-static void pm8921_charger_pm_late_resume(struct early_suspend *h)
-{
-	the_chip->is_early_suspend = false;
-	power_supply_changed(&the_chip->batt_psy);
-}
-#else
 #define pm8921_charger_pm_early_suspend NULL
 #define pm8921_charger_pm_late_resume NULL
-#endif
 
 #if defined(PANTECH_CHARGER_MONITOR_TEST)
 static char *str_cable_type[] = {
@@ -8125,7 +8107,7 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 	}
 
 	chip->dev = &pdev->dev;
-	chip->safety_time = pdata->safety_time;
+//	chip->safety_time = pdata->safety_time;
 	chip->ttrkl_time = pdata->ttrkl_time;
 	chip->update_time = pdata->update_time;
 	chip->max_voltage_mv = pdata->max_voltage;
@@ -8520,16 +8502,6 @@ static int __devinit pm8921_charger_probe(struct platform_device *pdev)
 				      round_jiffies_relative(msecs_to_jiffies
 							(chip->update_time)));
 	}
-
-#if defined(CONFIG_PANTECH_BMS_UPDATE)
-#if defined(CONFIG_HAS_EARLYSUSPEND)
-	chip->is_early_suspend = false;
-	chip->early_suspend.level = EARLY_SUSPEND_LEVEL_BLANK_SCREEN;
-	chip->early_suspend.suspend = pm8921_charger_pm_early_suspend;
-	chip->early_suspend.resume = pm8921_charger_pm_late_resume;
-	register_early_suspend(&chip->early_suspend);
-#endif    
-#endif
    
 	return 0;
 

@@ -176,21 +176,6 @@ config FB_MSM_LCDC_PANEL
 	select FB_MSM_LCDC
 	default n
 
-config FB_MSM_MIPI_DSI_SONY_WM
-	bool
-	select FB_MSM_MIPI_DSI
-	default n
-
-config FB_MSM_MIPI_DSI_SAMSUNG_OLED_PREMIA
-	bool
-	select FB_MSM_MIPI_DSI
-	default n	
-	
-config FB_MSM_MIPI_DSI_ROHM
-	bool
-	select FB_MSM_MIPI_DSI
-	default n
-
 config FB_MSM_MIPI_DSI_TOSHIBA
 	bool
 	select FB_MSM_MIPI_DSI
@@ -341,21 +326,6 @@ config FB_MSM_LVDS_CHIMEI_WXGA
 config FB_MSM_LVDS_FPDL3_WXGA
 	bool
 	select FB_MSM_LVDS
-
-config FB_MSM_MIPI_SONY_WM_VIDEO_HD
-	bool
-	select FB_MSM_MIPI_DSI_SONY_WM
-	default n
-
-config FB_MSM_MIPI_ROHM_VIDEO_HD
-	bool
-	select FB_MSM_MIPI_DSI_ROHM
-	default n
-	
-config FB_MSM_MIPI_SAMSUNG_OLED_VIDEO_HD
-	bool
-	select FB_MSM_MIPI_DSI_SAMSUNG_OLED_PREMIA
-	default n
 
 config FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT
 	bool
@@ -719,21 +689,9 @@ config FB_MSM_MDDI_SHARP_QVGA_128x128
 	---help---
 	  Support for MDDI Sharp QVGA (240x320) and 128x128 dual panel
 
-config FB_MSM_MIPI_SONY_WM_VIDEO_HD_PANEL
-	bool "MIPI Sony White Magic HD Panel"
-	select FB_MSM_MIPI_SONY_WM_VIDEO_HD
-
 config FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT_PANEL
 	bool "MIPI LG Display WXGA PT Panel"
 	select FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT
-
-config FB_MSM_MIPI_ROHM_VIDEO_HD_PANEL
-	bool "MIPI Rohm HD Panel (Magnus)"
-	select FB_MSM_MIPI_ROHM_VIDEO_HD
-
-config FB_MSM_MIPI_SAMSUNG_OLED_PREMIA_VIDEO_HD_PANEL
-	bool "MIPI Samsung OLED HD Panel(Vega Premia_VZW)"
-	select FB_MSM_MIPI_SAMSUNG_OLED_VIDEO_HD
 
 config FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT_PANEL
 	bool "MIPI Toshiba WVGA PT Panel"

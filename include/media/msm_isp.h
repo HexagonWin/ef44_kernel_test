@@ -59,8 +59,8 @@
 #define MSG_ID_OUTPUT_PRIMARY           40
 #define MSG_ID_OUTPUT_SECONDARY         41
 #define MSG_ID_STATS_COMPOSITE          42
-#define MSG_ID_STOP_LS_ACK              43
-#define MSG_ID_OUTPUT_TERTIARY1         44
+#define MSG_ID_OUTPUT_TERTIARY1         43
+#define MSG_ID_STOP_LS_ACK              44
 #define MSG_ID_OUTPUT_TERTIARY2         45
 #define MSG_ID_STATS_BG                 46
 #define MSG_ID_STATS_BF                 47
@@ -71,7 +71,6 @@
 #define MSG_ID_PIX0_UPDATE_ACK          52
 #define MSG_ID_PREV_STOP_ACK            53
 #define MSG_ID_OUTPUT_TERTIARY3         54
-
 
 
 /* ISP command IDs */
@@ -214,6 +213,9 @@
 #define VFE_CMD_CAPTURE_RAW                             136
 #define VFE_CMD_STOP_LIVESHOT                           137
 #define VFE_CMD_RECONFIG_VFE                            138
+#define VFE_CMD_STATS_REQBUF                            139
+#define VFE_CMD_STATS_ENQUEUEBUF                        140
+#define VFE_CMD_STATS_FLUSH_BUFQ                        141
 #define VFE_CMD_STATS_UNREGBUF                          142
 #define VFE_CMD_STATS_BG_START                          143
 #define VFE_CMD_STATS_BG_STOP                           144
@@ -355,7 +357,11 @@ struct msm_vpe_clock_rate {
 
 #define VFE_STATS_TYPE_LEGACY		0
 #define VFE_STATS_TYPE_BAYER		(1 << 2)
+
+struct msm_frame_info {
 	uint32_t inst_handle;
+	uint32_t path;
+};
 
 #endif /*__MSM_ISP_H__*/
 

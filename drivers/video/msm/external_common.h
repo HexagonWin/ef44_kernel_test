@@ -29,8 +29,6 @@
 
 #if defined(CONFIG_FB_MSM_HDMI_COMMON)
 extern int ext_resolution;
-extern int ext_resolution;
-
 
 /* A lookup table for all the supported display modes by the HDMI
  * hardware and driver.  Use HDMI_SETUP_LUT in the module init to
@@ -68,7 +66,6 @@ struct external_common_state_type {
 	boolean hpd_en;
 	struct kobject *uevent_kobj;
 	uint32 video_resolution;
-	boolean default_res_supported;
 	struct device *dev;
 	struct switch_dev sdev;
 	struct switch_dev audio_sdev;

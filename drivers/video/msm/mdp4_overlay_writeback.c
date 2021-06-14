@@ -291,7 +291,7 @@ static int mdp4_overlay_writeback_update(struct msm_fb_data_type *mfd)
 	mdp4_mixer_stage_up(pipe, 0);
 
 	mdp4_overlayproc_cfg(pipe);
-	mdp4_mixer_stage_commit(pipe->mixer_num);
+
 	if (hdmi_prim_display)
 		outpdw(MDP_BASE + 0x100F4, 0x01);
 	else
@@ -442,7 +442,6 @@ int mdp4_wfd_pipe_commit(struct msm_fb_data_type *mfd,
 
 	mdp4_stat.overlay_commit[pipe->mixer_num]++;
 
-
 	if (wait) {
 		mutex_unlock(&vctrl->mfd->dma->ov_mutex);
 		mdp4_wfd_wait4ov(cndx);
@@ -450,12 +449,6 @@ int mdp4_wfd_pipe_commit(struct msm_fb_data_type *mfd,
 	}
 
 	mdp4_wfd_queue_wakeup(mfd, node);
-
-	mdp4_writeback_dma_busy_wait(mfd);
-	mdp_clk_ctrl(0);
-
-	/* move current committed iommu to freelist */
-	mdp4_overlay_iommu_pipe_free(pipe->pipe_ndx, 0);
 
 	return cnt;
 }
