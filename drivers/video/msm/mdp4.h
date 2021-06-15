@@ -15,7 +15,7 @@
 #ifndef MDP4_H
 #define MDP4_H
 
-#include "msm_fb_def.h"
+//#include "msm_fb_def.h"
 
 extern struct mdp_dma_data dma2_data;
 extern struct mdp_dma_data dma_s_data;

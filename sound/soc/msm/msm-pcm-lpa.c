@@ -159,6 +159,7 @@ static void event_handler(uint32_t opcode,
 		else
 			prtd->out_head =
 				(prtd->out_head + 1) & (runtime->periods - 1);
+		atomic_set(&prtd->pending_buffer, 0);
 		break;
 	}
 	case ASM_DATA_CMDRSP_EOS:
@@ -435,7 +436,6 @@ static int msm_pcm_open(struct snd_pcm_substream *substream)
 	/* Capture path */
 	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
 		return -EPERM;
-		prtd->audio_client->perf_mode,
 
 	ret = snd_pcm_hw_constraint_list(runtime, 0,
 				SNDRV_PCM_HW_PARAM_RATE,

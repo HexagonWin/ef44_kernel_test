@@ -337,9 +337,6 @@ void machine_restart(char *cmd)
 {
 	machine_shutdown();
 
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING 
-	pantech_set_restart_reason();
-#endif
 	/* Flush the console to make sure all the relevant messages make it
 	 * out to the console drivers */
 	arm_machine_flush_console();

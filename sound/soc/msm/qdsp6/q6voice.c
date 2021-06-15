@@ -41,11 +41,6 @@
 /* Due to memory map issue on Q6 separate memory has to be used */
 /* for VOIP & VOLTE  */
 #define TOTAL_VOICE_CAL_SIZE	(NUM_VOICE_CAL_BUFFERS * VOICE_CAL_BUFFER_SIZE)
-#define VOICE_CAL_BUFFER_SIZE	(CVP_CAL_SIZE + CVS_CAL_SIZE)
-/* Total cal needed to support concurrent VOIP & VOLTE sessions */
-/* Due to memory map issue on Q6 separate memory has to be used */
-/* for VOIP & VOLTE  */
-#define TOTAL_VOICE_CAL_SIZE	(NUM_VOICE_CAL_BUFFERS * VOICE_CAL_BUFFER_SIZE)
 
 static struct common_data common;
 
@@ -270,72 +265,6 @@ static int voice_get_cal_phys_addr(int16_t session_id, int cal_type,
 done:
 	return result;
 }
-
-/* Only for memory allocated in the voice driver */
-/* which includes voip & volte */ /*
-static int voice_get_cal_kernel_addr(int16_t session_id, int cal_type,
-					uint32_t *kvaddr)
-{
-	int	i, result = 0;
-	pr_debug("%s\n", __func__);
-
-	if (kvaddr == NULL) {
-		pr_err("%s: NULL pointer sent to function\n", __func__);
-		result = -EINVAL;
-		goto done;
-	} else if (is_voip_session(session_id)) {
-		i = VOIP_CAL;
-	} else if (is_volte_session(session_id)) {
-		i = VOLTE_CAL;
-	} else {
-		result = -EINVAL;
-		goto done;
-	}
-
-	if (common.voice_cal[i].cal_data[cal_type].kvaddr == 0) {
-		pr_err("%s: NULL pointer for session_id %d, type %d, cal_type %d\n",
-			__func__, session_id, i, cal_type);
-		result = -EFAULT;
-		goto done;
-	}
-
-	*kvaddr = common.voice_cal[i].cal_data[cal_type].kvaddr;
-done:
-	return result;
-}
-*/
-/* Only for memory allocated in the voice driver */
-/* which includes voip & volte */ /*
-static int voice_get_cal_phys_addr(int16_t session_id, int cal_type,
-					uint32_t *paddr)
-{
-	int	i, result = 0;
-	pr_debug("%s\n", __func__);
-
-	if (paddr == NULL) {
-		pr_err("%s: NULL pointer sent to function\n", __func__);
-		result = -EINVAL;
-		goto done;
-	} else if (is_voip_session(session_id)) {
-		i = VOIP_CAL;
-	} else if (is_volte_session(session_id)) {
-		i = VOLTE_CAL;
-	} else {
-		result = -EINVAL;
-		goto done;
-	}
-
-	if (common.voice_cal[i].cal_data[cal_type].paddr == 0) {
-		pr_err("%s: No addr for session_id %d, type %d, cal_type %d\n",
-			__func__, session_id, i, cal_type);
-		result = -EFAULT;
-		goto done;
-	}
-
-	*paddr = common.voice_cal[i].cal_data[cal_type].paddr;
-done:
-	return result;
-}*/
 
 static int voice_apr_register(void)
 {

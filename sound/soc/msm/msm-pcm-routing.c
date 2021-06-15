@@ -564,7 +564,6 @@ static void msm_pcm_routing_process_audio(u16 reg, u16 val, int set)
 						MSM_PCM_RT_EVT_DEVSWITCH,
 						fdai->event_info.priv_data);
 
-
 			msm_pcm_routing_build_matrix(val,
 				fdai->strm_id, path_type);
 			srs_port_id = msm_bedais[reg].port_id;
@@ -3308,6 +3307,7 @@ static int msm_pcm_routing_prepare(struct snd_pcm_substream *substream)
 						fdai->event_info.priv_data);
 				fdai->be_srate = 0; /* might not need it */
 			}
+
 			channels = bedai->channel;
 
 			if (bedai->format == SNDRV_PCM_FORMAT_S16_LE)
