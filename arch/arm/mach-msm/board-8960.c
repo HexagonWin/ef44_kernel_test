@@ -488,9 +488,15 @@ static void __init reserve_pmem_memory(void)
 	reserve_memory_for(&android_pmem_pdata);
 	reserve_memory_for(&android_pmem_audio_pdata);
 #endif
-	msm8960_reserve_table[MEMTYPE_EBI1].size += msm_contig_mem_size;
+/*	msm8960_reserve_table[MEMTYPE_EBI1].size += msm_contig_mem_size;
 	pr_info("mem_map: contig_mem reserved with size 0x%x in pool\n",
-			msm_contig_mem_size);
+			msm_contig_mem_size);*/
+/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ * This is a workaround made to prevent error while building kernel.
+ * After successfully building the kernel, or when you found a way to
+ * fix the error in a correct way, revert this commit.
+ */
+
 #endif
 }
 
