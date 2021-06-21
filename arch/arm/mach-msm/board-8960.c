@@ -1573,27 +1573,6 @@ static struct msm_bus_vectors qseecom_enable_dfab_sfpb_vectors[] = {
 	},
 };
 
-static struct msm_bus_vectors qseecom_enable_dfab_sfpb_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ib = (492 * 8) * 1000000UL,
-		.ab = (492 * 8) *  100000UL,
-	},
-	{
-		.src = MSM_BUS_MASTER_SPS,
-		.dst = MSM_BUS_SLAVE_SPS,
-		.ib = (492 * 8) * 1000000UL,
-		.ab = (492 * 8) * 100000UL,
-	},
-	{
-		.src = MSM_BUS_MASTER_SPDM,
-		.dst = MSM_BUS_SLAVE_SPDM,
-		.ib = (64 * 8) * 1000000UL,
-		.ab = (64 * 8) *  100000UL,
-	},
-};
-
 static struct msm_bus_paths qseecom_hw_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(qseecom_clks_init_vectors),
@@ -4302,8 +4281,12 @@ static void __init msm8960_cdp_init(void)
 	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
 #endif
 	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE)
-		spi_register_board_info(spi_eth_info, ARRAY_SIZE(spi_eth_info));
-
+//		spi_register_board_info(spi_eth_info, ARRAY_SIZE(spi_eth_info));
+/* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ * This is a workaround made to prevent error while building kernel.
+ * After successfully building the kernel, or when you found a way to
+ * fix the error in a correct way, revert this commit.
+ */
 	msm8960_init_pmic();
 	if (machine_is_msm8960_liquid() || (machine_is_msm8960_mtp() &&
 		(socinfo_get_platform_subtype() == PLATFORM_SUBTYPE_SGLTE ||
