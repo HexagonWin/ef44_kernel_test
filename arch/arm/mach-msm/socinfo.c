@@ -768,10 +768,7 @@ int __init socinfo_init(void)
 	if (!socinfo)
 		socinfo = smem_alloc(SMEM_HW_SW_BUILD_ID,
 				sizeof(struct socinfo_v6));
-#if defined(CONFIG_PANTECH_PMIC)
-    oem_pm_smem_vendor1_data_type *smem_vendor1_data;
-    smem_vendor1_data = smem_alloc(SMEM_ID_VENDOR1, sizeof(oem_pm_smem_vendor1_data_type)); 
-#endif
+
     //chjeon20111027@LS1 add for silent boot mode
 #if defined(CONFIG_PANTECH_ERR_CRASH_LOGGING)
     sky_sys_rst_set_silent_boot_info();
@@ -892,17 +889,6 @@ int __init socinfo_init(void)
 		break;
 	}
 
-  #if defined(CONFIG_PANTECH_PMIC)
-  pr_info("smem_vendor1_data->power_on_reason : 0x%x\n", smem_vendor1_data->power_on_reason);
-  pr_info("smem_vendor1_data->factory_cable_adc : %d\n", smem_vendor1_data->factory_cable_adc);
-  pr_info("smem_vendor1_data->battery_id_adc : %d\n", smem_vendor1_data->battery_id_adc);
-  pr_info("smem_vendor1_data->hw_rev_adc : %d\n", smem_vendor1_data->hw_rev_adc);
-  pr_info("smem_vendor1_data->power_on_mode : %d\n", smem_vendor1_data->power_on_mode);
-  pr_info("smem_vendor1_data->silent_boot_mode : %d\n", smem_vendor1_data->silent_boot_mode);
-  pr_info("smem_vendor1_data->hw_rev : %d\n", smem_vendor1_data->hw_rev);
-  pr_info("smem_vendor1_data->battery_id : %d\n", smem_vendor1_data->battery_id);
-  #endif
-
 	return 0;
 }
 
@@ -941,10 +927,6 @@ const int read_msm_cpu_type(void)
 
 	case 0x510F06F0:
 		return MSM_CPU_8064;
-
-	case 0x511F06F1:
-	case 0x512F06F0:
-		return MSM_CPU_8974;
 
 	case 0x511F06F1:
 	case 0x512F06F0:

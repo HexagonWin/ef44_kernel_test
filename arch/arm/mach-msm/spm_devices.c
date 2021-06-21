@@ -45,12 +45,6 @@ struct msm_spm_vdd_info {
 	int err;
 };
 
-struct msm_spm_vdd_info {
-	uint32_t cpu;
-	uint32_t vlevel;
-	int err;
-};
-
 static struct msm_spm_device msm_spm_l2_device;
 static DEFINE_PER_CPU_SHARED_ALIGNED(struct msm_spm_device, msm_cpu_spm_device);
 
@@ -105,15 +99,6 @@ unsigned int msm_spm_get_vdd(unsigned int cpu)
 
 	dev = &per_cpu(msm_cpu_spm_device, cpu);
 	return msm_spm_drv_get_sts_curr_pmic_data(&dev->reg_data);
-}
-EXPORT_SYMBOL(msm_spm_get_vdd);
-
-unsigned int msm_spm_get_vdd(unsigned int cpu)
-{
-	struct msm_spm_device *dev;
-
-	dev = &per_cpu(msm_cpu_spm_device, cpu);
-	return dev->cpu_vdd;
 }
 EXPORT_SYMBOL(msm_spm_get_vdd);
 

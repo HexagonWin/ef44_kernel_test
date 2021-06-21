@@ -28,17 +28,11 @@
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
 #endif
-//++ p11309 - 2012.11.02 for remove cypress touch device 
-#ifdef CONFIG_TOUCHSCREEN_CYTTSP_I2C
 #include <linux/cyttsp-qc.h>
-#endif
 #include <linux/dma-contiguous.h>
-//-- p11309
 #include <linux/dma-mapping.h>
 #include <linux/platform_data/qcom_crypto_device.h>
-#ifndef CONFIG_WIFI_CONTROL_FUNC
 #include <linux/platform_data/qcom_wcnss_device.h>
-#endif //lee.eunsuk
 #include <linux/leds.h>
 #include <linux/leds-pm8xxx.h>
 #include <linux/i2c/atmel_mxt_ts.h>

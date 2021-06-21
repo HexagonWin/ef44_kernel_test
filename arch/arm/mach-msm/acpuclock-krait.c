@@ -62,10 +62,6 @@ struct proc_dir_entry *acpu_pvs_info;
   #endif
 #endif
 
-/*-> 20130108 yjw for improving booting speed*/
-static int cpu0_khz_during_booting = 0;
-/*20130108 yjw for improving booting speed <-*/
-
 static DEFINE_MUTEX(driver_lock);
 static DEFINE_SPINLOCK(l2_lock);
 
@@ -914,19 +910,6 @@ static const struct acpu_level __cpuinit *find_min_acpu_level(void)
 	return NULL;
 }
 
-/*-> 20130108 yjw for improving booting speed*/
-static const struct acpu_level __cpuinit *find_max_acpu_level(void)
-{
-	struct acpu_level *l;
-
-	for (l = drv.acpu_freq_tbl; l->speed.khz != 0; l++)
-		if (l->speed.khz == 1512000)
-			return l;
-
-	return NULL;
-}
-/*20130108 yjw for improving booting speed <-*/	
-
 static int __cpuinit per_cpu_init(int cpu)
 {
 	struct scalable *sc = &drv.scalable[cpu];
@@ -954,23 +937,12 @@ static int __cpuinit per_cpu_init(int cpu)
 	}
 
 	ret = regulator_init(sc, acpu_level);
-			acpu_level->speed.khz);
-	}
-
-	/*-> 20130108 yjw for improving booting speed*/
-        if(cpu0_khz_during_booting)
-        {
-                acpu_level = find_max_acpu_level();
-                cpu0_khz_during_booting = 0;
-        }
-        /*20130108 yjw for improving booting speed <-*/
 
 #if defined(CONFIG_PANTECH_PMIC)
 	dev_err(drv.dev, "CPU%d is running at %lu KHz\n", cpu,
 		acpu_level->speed.khz);
 #endif
 
-	ret = regulator_init(sc, acpu_level);
 	if (ret)
 		goto err_regulators;
 
@@ -1019,23 +991,7 @@ static void __init cpufreq_table_init(void)
 	for_each_possible_cpu(cpu) {
 		int i, freq_cnt = 0;
 		/* Construct the freq_table tables from acpu_freq_tbl. */
-    #if defined(CONFIG_PANTECH_PMIC)
-    int chargerfreq;
 		for (i = 0; drv.acpu_freq_tbl[i].speed.khz != 0
-				&& freq_cnt < ARRAY_SIZE(*freq_table); i++) {
-            chargerfreq = 0; 
-
-        if (oem_smem_boot_mode_read() || drv.acpu_freq_tbl[i].speed.khz <= 384000) 
-            chargerfreq = 1; 
-        if (drv.acpu_freq_tbl[i].use_for_scaling && chargerfreq) { 
-				freq_table[cpu][freq_cnt].index = freq_cnt;
-				freq_table[cpu][freq_cnt].frequency
-					= drv.acpu_freq_tbl[i].speed.khz;
-				freq_cnt++;
-			}
-		}
-    #else
-    for (i = 0; drv.acpu_freq_tbl[i].speed.khz != 0
 				&& freq_cnt < ARRAY_SIZE(*freq_table)-1; i++) {
 			if (drv.acpu_freq_tbl[i].use_for_scaling) {
 				freq_table[cpu][freq_cnt].index = freq_cnt;
@@ -1044,7 +1000,6 @@ static void __init cpufreq_table_init(void)
 				freq_cnt++;
 			}
 		}
-    #endif
 		/* freq_table not big enough to store all usable freqs. */
 		BUG_ON(drv.acpu_freq_tbl[i].speed.khz != 0);
 
@@ -1139,55 +1094,16 @@ static void krait_apply_vmin(struct acpu_level *tbl)
 static int __init get_speed_bin(u32 pte_efuse)
 { 
 	uint32_t speed_bin;
-    qfprom_base = ioremap(0x007060e0, SZ_256);
 
 	speed_bin = pte_efuse & 0xF;
 	if (speed_bin == 0xF)
 		speed_bin = (pte_efuse >> 4) & 0xF;
-    } else {
-        msm_revision = 0;
-    }
-
-
-    return msm_revision; 
-}
-#endif
-
-static int __init select_freq_plan(u32 pte_efuse_phys)
-{
-	void __iomem *pte_efuse;
-	u32 pte_efuse_val, pvs, tbl_idx;
-	char *pvs_names[] = { "Slow", "Nominal", "Fast", "Faster", "Unknown" };
-  
-#ifdef PANTECH_ACPUPVS
-  #ifdef F_PANTECH_SECBOOT
-	uint32_t sec = 0, ste_efuse = 0; 
-  #endif
-	memset(acpupvs, 0x0, sizeof(acpupvs));
-#endif
-
-	pte_efuse = ioremap(pte_efuse_phys, 4);
-	/* Select frequency tables. */
-	if (pte_efuse) {
-		pte_efuse_val = readl_relaxed(pte_efuse);
-		pvs = (pte_efuse_val >> 10) & 0x7;
-#ifdef PANTECH_ACPUPVS
-  #ifdef F_PANTECH_SECBOOT
-		ste_efuse = readl_relaxed(pte_efuse + STE_EFUSE);
-		sec = (ste_efuse_val >> 5) & 0x1;
-  #endif
-#endif
-		iounmap(pte_efuse);
-
 
 	if (speed_bin == 0xF) {
 		speed_bin = 0;
 		dev_warn(drv.dev, "SPEED BIN: Defaulting to %d\n", speed_bin);
 	} else {
 		dev_info(drv.dev, "SPEED BIN: %d\n", speed_bin);
-		case 0x4:
-			tbl_idx = PVS_FASTER;
-			break;
 	}
 
 	return speed_bin;
@@ -1213,26 +1129,11 @@ static int __init get_pvs_bin_b(u32 pte_efuse)
 	}
 
 	return pvs_bin;
-	} else {
-		dev_info(drv.dev, "ACPU PVS: %s\n", pvs_names[tbl_idx]);
 }
 
 static int __init get_pvs_bin(u32 pte_efuse)
 {
 	uint32_t pvs_bin;
-    if(sec)
-    {
-        strcat(acpupvs, " SEC");
-    }
-    else
-    {
-        strcat(acpupvs, " NSEC");
-    }
-  #endif
-    if(cpu_is_msm8960() || cpu_is_msm8930())
-    {
-        u32 board_revision = 0;
-        board_revision = get_msm_board_revision();
 
 	pvs_bin = (pte_efuse >> 10) & 0x7;
 	if (pvs_bin == 0x7)
@@ -1243,37 +1144,7 @@ static int __init get_pvs_bin(u32 pte_efuse)
 		dev_warn(drv.dev, "ACPU PVS: Defaulting to %d\n", pvs_bin);
 	} else {
 		dev_info(drv.dev, "ACPU PVS: %d\n", pvs_bin);
-            }
-            else if (board_revision == 0x4)
-            {
-                strcat(acpupvs, " v3.1");
-            }
-            else if (board_revision < 0x4)
-            {
-                strcat(acpupvs, " under_v3.1");
-            }
-            else
-            {
-                strcat(acpupvs, " undef ver");
-            }
-        }
-        else if(cpu_is_msm8930())
-        {
-            if(board_revision == 0x0)
-            {
-                strcat(acpupvs, " v1.1");
-	}
-            else if(board_revision == 0x2)
-            {
-                strcat(acpupvs, " v1.2");
-            }
-            else
-            {
-                strcat(acpupvs, " undef ver");
-            }
-        }
-    } 
-#endif
+ 	}
 
 	return pvs_bin;
 }
@@ -1383,29 +1254,9 @@ static void __init hw_init(void)
 int __init acpuclk_krait_init(struct device *dev,
 			      const struct acpuclk_krait_params *params)
 {
-	drv_data_init(dev, params);
-	hw_init();
-    len  = sprintf(page, "ACPU PVS : %s", acpupvs);
-    return len;
-}
-
-static int write_proc_acpu_pvs_info
-(struct file *file, const char *buffer, unsigned long count, void *data)
-{
-    return 0;
-}
-#endif
-
-int __init acpuclk_krait_init(struct device *dev,
-			      const struct acpuclk_krait_params *params)
-{
 #if defined(CONFIG_PANTECH_PMIC)
 	oem_vendor_smem_init();
 #endif	
-
-/*-> 20130108 yjw for improving booting speed*/
-        cpu0_khz_during_booting = 1;
-/*20130108 yjw for improving booting speed <-*/	
 
 	drv_data_init(dev, params);
 	hw_init();
@@ -1414,13 +1265,5 @@ int __init acpuclk_krait_init(struct device *dev,
 	dcvs_freq_init();
 	acpuclk_register(&acpuclk_krait_data);
 	register_hotcpu_notifier(&acpuclk_cpu_notifier);
-#ifdef PANTECH_ACPUPVS
-    acpu_pvs_info = create_proc_entry("acpu_pvs_info", S_IRUGO | S_IWUSR | S_IWGRP, NULL);
-    if (acpu_pvs_info) {
-        acpu_pvs_info->read_proc  = read_proc_acpu_pvs_info;
-        acpu_pvs_info->write_proc = write_proc_acpu_pvs_info;
-        acpu_pvs_info->data       = NULL;
-    }
-#endif
 	return 0;
 }

@@ -625,7 +625,6 @@ struct camera_enable_cmd {
 #define FRAME_RAW_SNAPSHOT		4
 #define FRAME_MAX			5
 
-	MSM_STATS_TYPE_COMP, /* Composite stats */
 struct msm_pmem_info {
 	int type;
 	int fd;

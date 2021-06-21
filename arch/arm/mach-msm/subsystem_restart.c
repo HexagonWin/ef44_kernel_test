@@ -508,24 +508,6 @@ int subsystem_restart_dev(struct subsys_device *dev)
 	pr_info("Restart sequence requested for %s, restart_level = %d.\n",
 		name, restart_level);
 
-#ifdef CONFIG_PANTECH_ERR_CRASH_LOGGING
-    if(!strncmp(subsys_name, "lpass", 5)) 
-    {
-        sky_reset_reason=SYS_RESET_REASON_LPASS;
-    }
-    else if(!strncmp(subsys_name, "modem", 5)) 
-    {
-        sky_reset_reason=SYS_RESET_REASON_EXCEPTION;
-    }
-    else if(!strncmp(subsys_name, "dsps", 4)) 
-    {
-        sky_reset_reason=SYS_RESET_REASON_DSPS;
-    }
-    else if( (!strncmp(subsys_name, "riva", 4)) || (!strncmp(subsys_name, "wcnss", 5)) ) 
-    {
-        sky_reset_reason=SYS_RESET_REASON_RIVA;
-    }
-#endif
 	switch (restart_level) {
 
 	case RESET_SUBSYS_COUPLED:

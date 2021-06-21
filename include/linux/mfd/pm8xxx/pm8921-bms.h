@@ -458,13 +458,10 @@ int pm8921_bms_get_simultaneous_battery_voltage_and_current(int *ibat_ua,
  *	  the battery before it dips below the min allowed voltage
  */
 int pm8921_bms_get_current_max(void);
-#ifdef CONFIG_PANTECH_BMS_UPDATE
 /**
  * pm8921_bms_get_percent - returns the battery in percent
  *
  */
-#if defined(CONFIG_PANTECH_PMIC_MAX17058)
-
 /**
  * pm8921_bms_cc_uah -	function to get the coulomb counter based charge. Note
  *			that the coulomb counter are reset when the current
@@ -544,4 +541,7 @@ static inline void pm8921_bms_battery_removed(void) {}
 static inline void pm8921_bms_battery_inserted(void) {}
 #endif
 
+#endif
+
+#endif
 #endif

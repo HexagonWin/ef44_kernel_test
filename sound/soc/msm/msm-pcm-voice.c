@@ -527,8 +527,6 @@ static int msm_voice_fens_put(struct snd_kcontrol *kcontrol,
 	pr_debug("%s: fens enable=%d\n", __func__, fens_enable);
 
 	voc_set_pp_enable(voc_get_session_id(VOICE_SESSION_NAME),
-			MODULE_ID_VOICE_MODULE_FENS, fens_enable);
-	voc_set_pp_enable(voc_get_session_id(SGLTE_SESSION_NAME),
 			  MODULE_ID_VOICE_MODULE_FENS, fens_enable);
 	voc_set_pp_enable(voc_get_session_id(VOICE2_SESSION_NAME),
 			  MODULE_ID_VOICE_MODULE_FENS, fens_enable);

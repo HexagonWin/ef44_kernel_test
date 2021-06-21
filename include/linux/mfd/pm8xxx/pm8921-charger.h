@@ -290,7 +290,6 @@ struct pm8921_charger_platform_data {
 	int64_t				batt_id_max;
 	bool				keep_btm_on_suspend;
 	bool				has_dc_supply;
-	bool				has_dc_supply;
 	int				trkl_voltage;
 	int				weak_voltage;
 	int				trkl_current;

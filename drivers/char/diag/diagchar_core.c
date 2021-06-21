@@ -290,15 +290,6 @@ static int diagchar_close(struct inode *inode, struct file *file)
 #ifdef CONFIG_DIAGFWD_BRIDGE_CODE
 		diag_clear_hsic_tbl();
 		diagfwd_cancel_hsic(REOPEN_HSIC);
-			if (driver->hsic_buf_tbl[i].buf) {
-				/* Return the buffer to the pool */
-				diagmem_free(driver, (unsigned char *)
-					(driver->hsic_buf_tbl[i].buf),
-					POOL_TYPE_HSIC);
-				driver->hsic_buf_tbl[i].buf = 0;
-				driver->hsic_buf_tbl[i].length = 0;
-			}
-		}
 		diagfwd_connect_bridge(0);
 #endif
 	}
@@ -877,17 +868,6 @@ int diag_switch_logging(unsigned long ioarg)
 		diag_cmp_logging_modes_sdio_pipe(temp, driver->logging_mode);
 		diag_cmp_logging_modes_diagfwd_bridge(temp,
 							driver->logging_mode);
-			driver->num_hsic_buf_tbl_entries = 0;
-			for (i = 0; i < driver->poolsize_hsic_write; i++) {
-				if (driver->hsic_buf_tbl[i].buf) {
-					/* Return the buffer to the pool */
-					diagmem_free(driver, (unsigned char *)
-						(driver->hsic_buf_tbl[i].buf),
-						POOL_TYPE_HSIC);
-					driver->hsic_buf_tbl[i].buf = 0;
-					driver->hsic_buf_tbl[i].length = 0;
-				}
-			}
 	} else if (temp == NO_LOGGING_MODE && driver->logging_mode
 						== MEMORY_DEVICE_MODE) {
 		for (i = 0; i < NUM_SMD_DATA_CHANNELS; i++) {
@@ -934,26 +914,12 @@ int diag_switch_logging(unsigned long ioarg)
 		diag_cmp_logging_modes_sdio_pipe(temp, driver->logging_mode);
 		diag_cmp_logging_modes_diagfwd_bridge(temp,
 						driver->logging_mode);
-			driver->num_hsic_buf_tbl_entries = 0;
-			for (i = 0; i < driver->poolsize_hsic_write; i++) {
-				driver->hsic_buf_tbl[i].buf = 0;
-				driver->hsic_buf_tbl[i].length = 0;
-			}
+
 	} else if (temp == MEMORY_DEVICE_MODE &&
 			 driver->logging_mode == USB_MODE) {
 		diagfwd_connect();
 		diag_cmp_logging_modes_diagfwd_bridge(temp,
 						driver->logging_mode);
-			for (i = 0; i < driver->poolsize_hsic_write; i++) {
-				if (driver->hsic_buf_tbl[i].buf) {
-					/* Return the buffer to the pool */
-					diagmem_free(driver, (unsigned char *)
-						(driver->hsic_buf_tbl[i].buf),
-						POOL_TYPE_HSIC);
-					driver->hsic_buf_tbl[i].buf = 0;
-					driver->hsic_buf_tbl[i].length = 0;
-				}
-			}
 	}
 	success = 1;
 	return success;
@@ -1311,35 +1277,12 @@ drop:
 		if (exit_stat == 1)
 			goto exit;
 
-					 i, (unsigned int)
-					(driver->hsic_buf_tbl[i].buf),
-					driver->hsic_buf_tbl[i].length);
-					num_data--;
-					goto drop_hsic;
-		}
-				ret += 4;
-
-				}
-				ret += driver->hsic_buf_tbl[i].length;
-drop_hsic:
-				/* Return the buffer to the pool */
-				diagmem_free(driver, (unsigned char *)
-					(driver->hsic_buf_tbl[i].buf),
-3					POOL_TYPE_HSIC);
-
-				driver->hsic_buf_tbl[i].length = 0;
-				driver->hsic_buf_tbl[i].buf = 0;
-				driver->num_hsic_buf_tbl_entries--;
-
-				/* Call the write complete function */
-				diagfwd_write_complete_hsic(NULL);
-			}
 		/* copy number of data fields */
 		COPY_USER_SPACE_OR_EXIT(buf+4, num_data, 4);
 		ret -= 4;
 		diag_update_data_ready(index);
 		for (i = 0; i < NUM_SMD_DATA_CHANNELS; i++) {
-3			if (driver->smd_data[i].ch)
+			if (driver->smd_data[i].ch)
 				queue_work(driver->diag_wq,
 				&(driver->smd_data[i].diag_read_smd_work));
 		}

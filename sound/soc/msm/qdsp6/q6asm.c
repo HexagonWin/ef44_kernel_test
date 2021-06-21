@@ -931,16 +931,6 @@ static int32_t q6asm_callback(struct apr_client_data *data, void *priv)
 				wake_up(&ac->cmd_wait);
 			} else if (atomic_read(&ac->cmd_state) &&
 					wakeup_flag) {
-/* 2013-02-25 107100J(1743J) Manual CR#434279 merge : Crashed occur during Audio Stability run */
-#ifdef CONFIG_PANTECH_SND
-			if (payload[0] == ASM_STREAM_CMD_CLOSE) {
-				atomic_set(&ac->cmd_close_state, 0);
-				wake_up(&ac->cmd_wait);
-			} else if (atomic_read(&ac->cmd_state) &&
-					wakeup_flag) {
-#else /* QCOM_original 10799J(1742J) */
-			if (atomic_read(&ac->cmd_state) && wakeup_flag) {
-#endif /* CONFIG_PANTECH_SND */
 				atomic_set(&ac->cmd_state, 0);
 				if (payload[1] == ADSP_EUNSUPPORTED) {
 					pr_debug("paload[1]:%d unsupported",
@@ -1566,13 +1556,6 @@ static int __q6asm_open_write(struct audio_client *ac, uint32_t format,
 	q6asm_add_hdr(ac, &open.hdr, sizeof(open), TRUE);
 	open.hdr.opcode = ASM_STREAM_CMD_OPEN_WRITE_V2_1;
 	open.bits_per_sample = bits_per_sample;
-		pr_debug("%s In Performance/lowlatency mode", __func__);
-		open.hdr.opcode = ASM_STREAM_CMD_OPEN_WRITE_V2_1;
-		open.uMode = ASM_OPEN_WRITE_PERF_MODE_BIT;
-		/* source endpoint : matrix */
-		open.sink_endpoint = ASM_END_POINT_DEVICE_MATRIX;
-		open.stream_handle = PCM_BITS_PER_SAMPLE;
-	} else {
 		open.sink_endpoint = ASM_END_POINT_DEVICE_MATRIX;
 	if (ac->perf_mode) {
 		pr_debug("%s In Performance/lowlatency mode", __func__);
@@ -4205,12 +4188,8 @@ int q6asm_cmd(struct audio_client *ac, int cmd)
 	case CMD_CLOSE:
 		pr_debug("%s:CMD_CLOSE\n", __func__);
 		hdr.opcode = ASM_STREAM_CMD_CLOSE;
-/* 2013-02-25 107100J(1743J) Manual CR#434279 merge : Crashed occur during Audio Stability run */
-#ifdef CONFIG_PANTECH_SND
 		atomic_set(&ac->cmd_close_state, 1);
 		state = &ac->cmd_close_state;
-#else /* QCOM_original 10799J(1742J) */
-#endif /* CONFIG_PANTECH_SND */
 		break;
 	default:
 		pr_err("Invalid format[%d]\n", cmd);

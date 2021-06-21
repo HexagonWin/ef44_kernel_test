@@ -307,8 +307,6 @@ static int bam_dmux_uplink_vote;
 static int bam_dmux_power_state;
 
 static void *bam_ipc_log_txt;
-					__printf(1, 2);
-
 
 #define BAM_IPC_LOG_PAGES 5
 
@@ -403,7 +401,6 @@ static void __queue_rx(gfp_t alloc_flags)
 			goto fail;
 
 		info = kmalloc(sizeof(struct rx_pkt_info), alloc_flags);
-						GFP_NOWAIT | __GFP_NOWARN);
 		if (!info) {
 			DMUX_LOG_KERR(
 			"%s: unable to alloc rx_pkt_info w/ flags %x, will retry later\n",
@@ -442,17 +439,11 @@ static void __queue_rx(gfp_t alloc_flags)
 			list_del(&info->list_node);
 			rx_len_cached = --bam_rx_pool_len;
 			mutex_unlock(&bam_rx_pool_mutexlock);
-			dma_unmap_single(NULL, info->dma_address, BUFFER_SIZE,
-						bam_ops->dma_from);
-
-			goto fail_skb;
-		}
-		mutex_unlock(&bam_rx_pool_mutexlock);
 			DMUX_LOG_KERR("%s: sps_transfer_one failed %d\n",
 				__func__, ret);
 
-	}
-	return;
+			dma_unmap_single(NULL, info->dma_address, BUFFER_SIZE,
+						bam_ops->dma_from);
 
 			goto fail_skb;
 		}
@@ -492,11 +483,6 @@ static void queue_rx_work_func(struct work_struct *work)
 	 * delay.
 	 */
 	__queue_rx(GFP_KERNEL);
-}
-
-static void queue_rx_work_func(struct work_struct *work)
-{
-	queue_rx();
 }
 
 static void bam_mux_process_data(struct sk_buff *rx_skb)
@@ -2506,7 +2492,6 @@ static int bam_dmux_probe(struct platform_device *pdev)
 	init_completion(&shutdown_completion);
 	complete_all(&shutdown_completion);
 	INIT_DELAYED_WORK(&ul_timeout_work, ul_timeout);
-	INIT_DELAYED_WORK(&queue_rx_work, queue_rx_work_func);
 	wake_lock_init(&bam_wakelock, WAKE_LOCK_SUSPEND, "bam_dmux_wakelock");
 	init_srcu_struct(&bam_dmux_srcu);
 
