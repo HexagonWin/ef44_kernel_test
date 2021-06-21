@@ -384,7 +384,7 @@ obj-$(CONFIG_MSM_RPM_SMD) += rpm-smd.o
 obj-$(CONFIG_MSM_CPR) += msm_cpr.o
 obj-$(CONFIG_MSM_VP_REGULATOR) += msm_vp.o
 
-//Stock kernel part started here
+#Stock kernel part started here
 ifdef CONFIG_MSM_CPR
 obj-$(CONFIG_DEBUG_FS) += msm_cpr-debug.o
 endif
@@ -394,7 +394,7 @@ obj-$(CONFIG_MSM_CPU_PWRCTL) +=  msm_cpu_pwrctl.o
 ifdef CONFIG_PANTECH_WLAN_BRCM
 obj-$(CONFIG_SKY_PANMAC) += panmac.o
 endif
-//And end here. Remove if problem
+#And end here. Remove if problem
 
 obj-$(CONFIG_MSM_USE_USER_ACCESSIBLE_TIMERS) += timer_page.o
 
