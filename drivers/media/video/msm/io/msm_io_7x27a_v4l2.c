@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -144,6 +144,7 @@ void msm_camio_set_perf_lvl(enum msm_bus_perf_setting perf_setting)
 		break;
 	case S_PREVIEW:
 		// do nothing as axi clock/bandwidth is already set while INIT
+		axi_allocate(AXI_FLOW_VIEWFINDER_HI);
 		break;
 	case S_VIDEO:
 		update_axi_qos(MSM_AXI_QOS_RECORDING);

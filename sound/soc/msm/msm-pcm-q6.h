@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2008 Google, Inc.
  * Copyright (C) 2008 HTC Corporation
- * Copyright (c) 2008-2009,2011 Code Aurora Forum. All rights reserved.
+ * Copyright (c) 2008-2009,2011 The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -81,6 +81,16 @@ struct msm_audio {
 	int periods;
 	int mmap_flag;
 	atomic_t pending_buffer;
+	int cmd_interrupt;
+	bool meta_data_mode;
+};
+
+struct output_meta_data_st {
+	uint32_t meta_data_length;
+	uint32_t frame_size;
+	uint32_t timestamp_lsw;
+	uint32_t timestamp_msw;
+	uint32_t reserved[12];
 };
 
 struct output_meta_data_st {

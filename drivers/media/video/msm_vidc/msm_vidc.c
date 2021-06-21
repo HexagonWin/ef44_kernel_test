@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -29,12 +29,6 @@ int msm_vidc_poll(void *instance, struct file *filp,
 	struct vb2_buffer *out_vb = NULL;
 	struct vb2_buffer *cap_vb = NULL;
 	unsigned long flags;
-	if (!outq->streaming && !capq->streaming) {
-		pr_err("Returning POLLERR from here: %d, %d\n",
-			outq->streaming, capq->streaming);
-		return POLLERR;
-	}
-	poll_wait(filp, &inst->event_handler.wait, wait);
 	poll_wait(filp, &capq->done_wq, wait);
 	poll_wait(filp, &outq->done_wq, wait);
 	if (v4l2_event_pending(&inst->event_handler))
@@ -137,6 +131,22 @@ int msm_vidc_release_buf(void *instance, struct v4l2_buffer *b)
 	struct msm_vidc_inst *inst = instance;
 	if (inst->session_type == MSM_VIDC_DECODER)
 		return msm_vdec_release_buf(instance, b);
+	return -EINVAL;
+}
+
+int msm_vidc_encoder_cmd(void *instance, struct v4l2_encoder_cmd *enc)
+{
+	struct msm_vidc_inst *inst = instance;
+	if (inst->session_type == MSM_VIDC_ENCODER)
+		return msm_venc_cmd(instance, enc);
+	return -EINVAL;
+}
+
+int msm_vidc_decoder_cmd(void *instance, struct v4l2_decoder_cmd *dec)
+{
+	struct msm_vidc_inst *inst = instance;
+	if (inst->session_type == MSM_VIDC_DECODER)
+		return msm_vdec_cmd(instance, dec);
 	return -EINVAL;
 }
 
@@ -243,6 +253,7 @@ int msm_vidc_open(void *vidc_inst, int core_id, int session_type)
 	inst->session_type = session_type;
 	INIT_LIST_HEAD(&inst->pendingq);
 	INIT_LIST_HEAD(&inst->internalbufs);
+	INIT_LIST_HEAD(&inst->persistbufs);
 	inst->state = MSM_VIDC_CORE_UNINIT_DONE;
 	inst->core = core;
 	for (i = SESSION_MSG_INDEX(SESSION_MSG_START);
@@ -309,6 +320,15 @@ static void cleanup_instance(struct msm_vidc_inst *inst)
 		}
 		if (!list_empty(&inst->internalbufs)) {
 			list_for_each_safe(ptr, next, &inst->internalbufs) {
+				buf = list_entry(ptr, struct internal_buf,
+						list);
+				list_del(&buf->list);
+				msm_smem_free(inst->mem_client, buf->handle);
+				kfree(buf);
+			}
+		}
+		if (!list_empty(&inst->persistbufs)) {
+			list_for_each_safe(ptr, next, &inst->persistbufs) {
 				buf = list_entry(ptr, struct internal_buf,
 						list);
 				list_del(&buf->list);

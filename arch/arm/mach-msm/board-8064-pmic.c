@@ -1,4 +1,5 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2012, 2014-2016, The Linux Foundation.
+ * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -26,6 +27,7 @@
 #include <mach/board.h>
 #include <mach/gpiomux.h>
 #include <mach/restart.h>
+#include <mach/socinfo.h>
 #include "devices.h"
 #include "board-8064.h"
 
@@ -86,6 +88,12 @@ struct pm8xxx_mpp_init {
 			PM_GPIO_STRENGTH_##_strength, \
 			PM_GPIO_FUNC_NORMAL, 0, 0)
 
+#define PM8921_GPIO_OUTPUT_HIGH(_gpio, _val, _strength) \
+	PM8921_GPIO_INIT(_gpio, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, _val, \
+			PM_GPIO_PULL_NO, PM_GPIO_VIN_L17, \
+			PM_GPIO_STRENGTH_##_strength, \
+			PM_GPIO_FUNC_NORMAL, 0, 0)
+
 #define PM8921_GPIO_OUTPUT_BUFCONF(_gpio, _val, _strength, _bufconf) \
 	PM8921_GPIO_INIT(_gpio, PM_GPIO_DIR_OUT,\
 			PM_GPIO_OUT_BUF_##_bufconf, _val, \
@@ -114,19 +122,52 @@ struct pm8xxx_mpp_init {
 /* Initial PM8921 GPIO configurations */
 static struct pm8xxx_gpio_init pm8921_gpios[] __initdata = {
 	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
-	PM8921_GPIO_OUTPUT(23, 0, HIGH),	/* touchscreen power FET */
 	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
+	PM8921_GPIO_INIT(5, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0,
+			PM_GPIO_PULL_NO, 1, PM_GPIO_STRENGTH_HIGH,
+			PM_GPIO_FUNC_NORMAL, 0, 0), /*adv7282 */
+	PM8921_GPIO_INIT(6, PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0,
+			PM_GPIO_PULL_NO, 1, PM_GPIO_STRENGTH_HIGH,
+			PM_GPIO_FUNC_NORMAL, 0, 0), /*adv7282 */
 	PM8921_GPIO_OUTPUT_FUNC(26, 0, PM_GPIO_FUNC_2), /* Bl: Off, PWM mode */
 	PM8921_GPIO_OUTPUT_VIN(30, 1, PM_GPIO_VIN_VPH), /* SMB349 susp line */
 	PM8921_GPIO_OUTPUT_BUFCONF(36, 1, LOW, OPEN_DRAIN),
 	PM8921_GPIO_OUTPUT_FUNC(44, 0, PM_GPIO_FUNC_2),
 	PM8921_GPIO_OUTPUT(33, 0, HIGH),
-	PM8921_GPIO_OUTPUT(20, 0, HIGH),
 	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),
 	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_UP_30),
+
+	PM8921_GPIO_INPUT(43, PM_GPIO_PULL_UP_30),
+	PM8921_GPIO_INPUT(20, PM_GPIO_PULL_UP_30),
+
 	/* TABLA CODEC RESET */
-	PM8921_GPIO_OUTPUT(34, 1, MED),
+	PM8921_GPIO_OUTPUT(34, 0, MED),
+	PM8921_GPIO_OUTPUT_VIN(22, 0, PM_GPIO_VIN_VPH), /* PCIE_CLKEN */
 	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+
+	/* ADV IRQ */
+	PM8921_GPIO_INPUT(07, PM_GPIO_PULL_UP_30), /* ADV7282_IRQ1_N */
+	PM8921_GPIO_INPUT(18, PM_GPIO_PULL_UP_30), /* ADV7282_IRQ2_N */
+};
+/* Initial PM8921 GPIO configurations */
+static struct pm8xxx_gpio_init mplatform_pm8921_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
+	/*authIC reset pin */
+	PM8921_GPIO_OUTPUT_FUNC(26, 1, PM_GPIO_FUNC_NORMAL),
+	PM8921_GPIO_OUTPUT_VIN(30, 1, PM_GPIO_VIN_VPH), /* SMB349 susp line */
+	PM8921_GPIO_OUTPUT_FUNC(44, 0, PM_GPIO_FUNC_2),
+	PM8921_GPIO_OUTPUT(33, 0, HIGH),
+	PM8921_GPIO_OUTPUT(20, 0, HIGH),
+	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),/*SD_PWR_EN for Mplatform*/
+	PM8921_GPIO_INPUT(38, PM_GPIO_PULL_UP_30),
+#ifdef M_PLATFORM
+	PM8921_GPIO_OUTPUT_VIN(27, 0, PM_GPIO_VIN_VPH), /* ADV_RESET */
+#endif
+	/* TABLA CODEC RESET */
+	PM8921_GPIO_OUTPUT(34, 0, MED),
+	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
 };
 
 static struct pm8xxx_gpio_init pm8921_mtp_kp_gpios[] __initdata = {
@@ -135,14 +176,72 @@ static struct pm8xxx_gpio_init pm8921_mtp_kp_gpios[] __initdata = {
 };
 
 static struct pm8xxx_gpio_init pm8921_cdp_kp_gpios[] __initdata = {
+#ifndef MOBIS_PLATFORM
 	PM8921_GPIO_INPUT(27, PM_GPIO_PULL_UP_30),
+#endif
 	PM8921_GPIO_INPUT(42, PM_GPIO_PULL_UP_30),
 	PM8921_GPIO_INPUT(17, PM_GPIO_PULL_UP_1P5),	/* SD_WP */
 };
 
+static struct pm8xxx_gpio_init pm8921_mpq8064_hrd_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(37, 0, LOW),	/* MUX1_SEL */
+};
+
+static struct pm8xxx_gpio_init pm8921_apq8064_adp_2_gpios[] __initdata = {
+	PM8921_GPIO_INIT(37, PM_GPIO_DIR_OUT, 0, 1, PM_GPIO_PULL_NO, 2,
+		PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_1, 0, 0),
+	PM8921_GPIO_INIT(23, PM_GPIO_DIR_OUT, 0, 0, PM_GPIO_PULL_NO,
+		PM_GPIO_VIN_VPH, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL,
+		0, 0),
+	PM8921_GPIO_INPUT(14, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(19, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(25, PM_GPIO_PULL_DN),
+	PM8921_GPIO_INPUT(41, PM_GPIO_PULL_DN),
+};
+
+/* Initial PM8917 GPIO configurations */
+static struct pm8xxx_gpio_init pm8917_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(14, 1, HIGH),	/* HDMI Mux Selector */
+	PM8921_GPIO_OUTPUT_BUFCONF(25, 0, LOW, CMOS), /* DISP_RESET_N */
+	PM8921_GPIO_OUTPUT(26, 1, HIGH), /* Backlight: on */
+	PM8921_GPIO_OUTPUT_BUFCONF(36, 1, LOW, OPEN_DRAIN),
+	PM8921_GPIO_OUTPUT_FUNC(38, 0, PM_GPIO_FUNC_2),
+	PM8921_GPIO_OUTPUT(33, 0, HIGH),
+	PM8921_GPIO_OUTPUT(20, 0, HIGH),
+	PM8921_GPIO_INPUT(35, PM_GPIO_PULL_UP_30),
+	PM8921_GPIO_INPUT(30, PM_GPIO_PULL_UP_30),
+	/* TABLA CODEC RESET */
+	PM8921_GPIO_OUTPUT(34, 1, MED),
+	PM8921_GPIO_OUTPUT(13, 0, HIGH),               /* PCIE_CLK_PWR_EN */
+	PM8921_GPIO_INPUT(12, PM_GPIO_PULL_UP_30),     /* PCIE_WAKE_N */
+};
+
+/* PM8921 GPIO 42 remaps to PM8917 GPIO 8 */
+static struct pm8xxx_gpio_init pm8917_cdp_kp_gpios[] __initdata = {
+	PM8921_GPIO_INPUT(27, PM_GPIO_PULL_UP_30),
+	PM8921_GPIO_INPUT(8, PM_GPIO_PULL_UP_30),
+	PM8921_GPIO_INPUT(17, PM_GPIO_PULL_UP_1P5),	/* SD_WP */
+};
+
+static struct pm8xxx_gpio_init pm8921_8917_cdp_ts_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(23, 0, HIGH),	/* touchscreen power FET */
+};
+
+static struct pm8xxx_gpio_init pm8921_mplatform_ts_gpios[] __initdata = {
+	/*HW need this voltage*/
+	PM8921_GPIO_OUTPUT_HIGH(36, 0, HIGH),	/* touchscreen reset */
+};
+
+static struct pm8xxx_gpio_init pm8921_mpq_gpios[] __initdata = {
+	PM8921_GPIO_INIT(27, PM_GPIO_DIR_IN, PM_GPIO_OUT_BUF_CMOS, 0,
+			PM_GPIO_PULL_NO, PM_GPIO_VIN_VPH, PM_GPIO_STRENGTH_NO,
+			PM_GPIO_FUNC_NORMAL, 0, 0),
+};
+
 /* Initial PM8XXX MPP configurations */
-static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
-	PM8921_MPP_INIT(3, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_LOW),
+static struct pm8xxx_mpp_init mplatform_pm8xxx_mpps[] __initdata = {
+	/* External 5V regulator enable; shared by HDMI and USB_OTG switches. */
+	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
 	PM8921_MPP_INIT(8, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
 	/*MPP9 is used to detect docking station connection/removal on Liquid*/
 	PM8921_MPP_INIT(9, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
@@ -150,47 +249,109 @@ static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
 	PM8921_MPP_INIT(1, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
 };
 
+/* Initial PM8XXX MPP configurations */
+static struct pm8xxx_mpp_init pm8xxx_mpps[] __initdata = {
+	/* MDM_STATUS */
+	PM8921_MPP_INIT(1, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
+	/* MDM_ON_OFF */
+	PM8821_MPP_INIT(2, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_HIGH),
+	PM8921_MPP_INIT(7, D_OUTPUT, PM8921_MPP_DIG_LEVEL_VPH, DOUT_CTRL_HIGH),
+	PM8921_MPP_INIT(8, D_OUTPUT, PM8921_MPP_DIG_LEVEL_S4, DOUT_CTRL_LOW),
+	/*MPP9 is used to detect docking station connection/removal on Liquid*/
+	PM8921_MPP_INIT(9, D_INPUT, PM8921_MPP_DIG_LEVEL_S4, DIN_TO_INT),
+};
+
+static struct pm8xxx_gpio_init pm8921_sglte2_gpios[] __initdata = {
+	PM8921_GPIO_OUTPUT(23, 1, HIGH),		/* PM2QSC_SOFT_RESET */
+	PM8921_GPIO_OUTPUT(21, 1, HIGH),		/* PM2QSC_KEYPADPWR */
+};
+
+void __init apq8064_configure_gpios(struct pm8xxx_gpio_init *data, int len)
+{
+	int i, rc;
+
+	for (i = 0; i < len; i++) {
+		rc = pm8xxx_gpio_config(data[i].gpio, &data[i].config);
+		if (rc)
+			pr_err("%s: pm8xxx_gpio_config(%u) failed: rc=%d\n",
+				__func__, data[i].gpio, rc);
+	}
+}
+
 void __init apq8064_pm8xxx_gpio_mpp_init(void)
 {
 	int i, rc;
 
-	for (i = 0; i < ARRAY_SIZE(pm8921_gpios); i++) {
-		rc = pm8xxx_gpio_config(pm8921_gpios[i].gpio,
-					&pm8921_gpios[i].config);
-		if (rc) {
-			pr_err("%s: pm8xxx_gpio_config: rc=%d\n", __func__, rc);
-			break;
+	if (socinfo_get_pmic_model() != PMIC_MODEL_PM8917) {
+		if (machine_is_apq8064_mplatform())
+			apq8064_configure_gpios(mplatform_pm8921_gpios,
+					ARRAY_SIZE(mplatform_pm8921_gpios));
+		else
+			apq8064_configure_gpios(pm8921_gpios,
+					ARRAY_SIZE(pm8921_gpios));
+	} else
+		apq8064_configure_gpios(pm8917_gpios, ARRAY_SIZE(pm8917_gpios));
+
+	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid() ||
+					machine_is_apq8064_adp_2() ||
+					machine_is_apq8064_adp2_es2() ||
+					machine_is_apq8064_adp2_es2p5()) {
+		if (socinfo_get_pmic_model() != PMIC_MODEL_PM8917)
+			apq8064_configure_gpios(pm8921_cdp_kp_gpios,
+					ARRAY_SIZE(pm8921_cdp_kp_gpios));
+		else
+			apq8064_configure_gpios(pm8917_cdp_kp_gpios,
+					ARRAY_SIZE(pm8917_cdp_kp_gpios));
+		if (machine_is_apq8064_adp_2() || machine_is_apq8064_adp2_es2()
+			|| machine_is_apq8064_adp2_es2p5())
+			apq8064_configure_gpios(pm8921_apq8064_adp_2_gpios,
+					ARRAY_SIZE(pm8921_apq8064_adp_2_gpios));
+		else if (machine_is_apq8064_cdp())
+			apq8064_configure_gpios(pm8921_8917_cdp_ts_gpios,
+					ARRAY_SIZE(pm8921_8917_cdp_ts_gpios));
+	}
+
+	if (machine_is_apq8064_mplatform())
+		apq8064_configure_gpios(pm8921_mplatform_ts_gpios,
+				ARRAY_SIZE(pm8921_mplatform_ts_gpios));
+	if (machine_is_apq8064_mtp()) {
+		apq8064_configure_gpios(pm8921_mtp_kp_gpios,
+					ARRAY_SIZE(pm8921_mtp_kp_gpios));
+		if (socinfo_get_platform_subtype() ==
+					PLATFORM_SUBTYPE_SGLTE2) {
+			apq8064_configure_gpios(pm8921_sglte2_gpios,
+					ARRAY_SIZE(pm8921_sglte2_gpios));
 		}
 	}
 
-	if (machine_is_apq8064_cdp() || machine_is_apq8064_liquid())
-		for (i = 0; i < ARRAY_SIZE(pm8921_cdp_kp_gpios); i++) {
-			rc = pm8xxx_gpio_config(pm8921_cdp_kp_gpios[i].gpio,
-						&pm8921_cdp_kp_gpios[i].config);
+	if (machine_is_mpq8064_cdp() || machine_is_mpq8064_hrd()
+	    || machine_is_mpq8064_dtv())
+		apq8064_configure_gpios(pm8921_mpq_gpios,
+					ARRAY_SIZE(pm8921_mpq_gpios));
+
+	if (machine_is_mpq8064_hrd())
+		apq8064_configure_gpios(pm8921_mpq8064_hrd_gpios,
+					ARRAY_SIZE(pm8921_mpq8064_hrd_gpios));
+
+	if (machine_is_apq8064_mplatform()) {
+		for (i = 0; i < ARRAY_SIZE(mplatform_pm8xxx_mpps); i++) {
+			rc = pm8xxx_mpp_config(mplatform_pm8xxx_mpps[i].mpp,
+					&mplatform_pm8xxx_mpps[i].config);
 			if (rc) {
-				pr_err("%s: pm8xxx_gpio_config: rc=%d\n",
-					__func__, rc);
+				pr_err("%s: pm8xxx_mpp_config: rc=%d\n",
+						__func__, rc);
 				break;
 			}
 		}
-
-	if (machine_is_apq8064_mtp())
-		for (i = 0; i < ARRAY_SIZE(pm8921_mtp_kp_gpios); i++) {
-			rc = pm8xxx_gpio_config(pm8921_mtp_kp_gpios[i].gpio,
-						&pm8921_mtp_kp_gpios[i].config);
-			if (rc) {
-				pr_err("%s: pm8xxx_gpio_config: rc=%d\n",
-					__func__, rc);
-				break;
-			}
-		}
-
-	for (i = 0; i < ARRAY_SIZE(pm8xxx_mpps); i++) {
-		rc = pm8xxx_mpp_config(pm8xxx_mpps[i].mpp,
+	} else {
+		for (i = 0; i < ARRAY_SIZE(pm8xxx_mpps); i++) {
+			rc = pm8xxx_mpp_config(pm8xxx_mpps[i].mpp,
 					&pm8xxx_mpps[i].config);
-		if (rc) {
-			pr_err("%s: pm8xxx_mpp_config: rc=%d\n", __func__, rc);
-			break;
+			if (rc) {
+				pr_err("%s: pm8xxx_mpp_config: rc=%d\n",
+						__func__, rc);
+				break;
+			}
 		}
 	}
 }
@@ -205,7 +366,7 @@ static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
 	.priority		= 0,
 };
 
-#define PM8921_LC_LED_MAX_CURRENT	4	/* I = 4mA */
+#define PM8921_LC_LED_MAX_CURRENT	12	/* I = 12mA */
 #define PM8921_LC_LED_LOW_CURRENT	1	/* I = 1mA */
 #define PM8XXX_LED_PWM_PERIOD		1000
 #define PM8XXX_LED_PWM_DUTY_MS		20
@@ -218,7 +379,11 @@ static struct pm8xxx_misc_platform_data apq8064_pm8921_misc_pdata = {
 static struct led_info pm8921_led_info[] = {
 	[0] = {
 		.name			= "led:red",
-		.default_trigger	= "ac-online",
+		.default_trigger	= "battery-charging",
+	},
+	[1] = {
+		.name			= "led:green",
+		.default_trigger	= "battery-full",
 	},
 };
 
@@ -254,6 +419,14 @@ static struct pm8xxx_led_config pm8921_led_configs[] = {
 		.mode = PM8XXX_LED_MODE_PWM2,
 		.max_current = PM8921_LC_LED_MAX_CURRENT,
 		.pwm_channel = 5,
+		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
+		.pwm_duty_cycles = &pm8921_led0_pwm_duty_cycles,
+	},
+	[1] = {
+		.id = PM8XXX_ID_LED_1,
+		.mode = PM8XXX_LED_MODE_PWM1,
+		.max_current = PM8921_LC_LED_MAX_CURRENT,
+		.pwm_channel = 4,
 		.pwm_period_us = PM8XXX_LED_PWM_PERIOD,
 		.pwm_duty_cycles = &pm8921_led0_pwm_duty_cycles,
 	},
@@ -344,16 +517,17 @@ static int apq8064_pm8921_therm_mitigation[] = {
 #define CHG_TERM_MA		100
 static struct pm8921_charger_platform_data
 apq8064_pm8921_chg_pdata __devinitdata = {
-	.safety_time		= 180,
 	.update_time		= 60000,
 	.max_voltage		= MAX_VOLTAGE_MV,
 	.min_voltage		= 3200,
 	.uvd_thresh_voltage	= 4050,
+	.alarm_low_mv		= 3400,
+	.alarm_high_mv		= 4000,
 	.resume_voltage_delta	= 60,
 	.resume_charge_percent	= 99,
 	.term_current		= CHG_TERM_MA,
 	.cool_temp		= 10,
-	.warm_temp		= 40,
+	.warm_temp		= 45,
 	.temp_check_period	= 1,
 	.max_bat_chg_current	= 1100,
 	.cool_bat_chg_current	= 350,
@@ -363,29 +537,42 @@ apq8064_pm8921_chg_pdata __devinitdata = {
 	.thermal_mitigation	= apq8064_pm8921_therm_mitigation,
 	.thermal_levels		= ARRAY_SIZE(apq8064_pm8921_therm_mitigation),
 	.rconn_mohm		= 18,
+	.enable_tcxo_warmup_delay = true,
+	.disable_charger	= false,
 };
 
 static struct pm8xxx_ccadc_platform_data
 apq8064_pm8xxx_ccadc_pdata = {
-	.r_sense		= 10,
+	.r_sense_uohm		= 10000,
 	.calib_delay_ms		= 600000,
 };
 
 static struct pm8921_bms_platform_data
 apq8064_pm8921_bms_pdata __devinitdata = {
 	.battery_type			= BATT_UNKNOWN,
-	.r_sense			= 10,
+	.r_sense_uohm			= 10000,
 	.v_cutoff			= 3400,
 	.max_voltage_uv			= MAX_VOLTAGE_MV * 1000,
 	.rconn_mohm			= 18,
 	.shutdown_soc_valid_limit	= 20,
 	.adjust_soc_low_threshold	= 25,
 	.chg_term_ua			= CHG_TERM_MA * 1000,
+	.normal_voltage_calc_ms		= 20000,
+	.low_voltage_calc_ms		= 1000,
+	.alarm_low_mv			= 3400,
+	.alarm_high_mv			= 4000,
+	.high_ocv_correction_limit_uv	= 50,
+	.low_ocv_correction_limit_uv	= 100,
+	.hold_soc_est			= 3,
+	.enable_fcc_learning		= 1,
+	.min_fcc_learning_soc		= 20,
+	.min_fcc_ocv_pc			= 30,
+	.min_fcc_learning_samples	= 5,
+	.disable_bms			= 0,
 };
 
 static struct pm8921_platform_data
 apq8064_pm8921_platform_data __devinitdata = {
-	.regulator_pdatas	= msm8064_pm8921_regulator_pdata,
 	.irq_pdata		= &apq8064_pm8921_irq_pdata,
 	.gpio_pdata		= &apq8064_pm8921_gpio_pdata,
 	.mpp_pdata		= &apq8064_pm8921_mpp_pdata,
@@ -442,17 +629,35 @@ void __init apq8064_init_pmic(void)
 						&apq8064_ssbi_pm8921_pdata;
 	apq8064_device_ssbi_pmic2.dev.platform_data =
 				&apq8064_ssbi_pm8821_pdata;
-	apq8064_pm8921_platform_data.num_regulators =
-					msm8064_pm8921_regulator_pdata_len;
+	if (socinfo_get_pmic_model() != PMIC_MODEL_PM8917) {
+		apq8064_pm8921_platform_data.regulator_pdatas
+			= msm8064_pm8921_regulator_pdata;
+		apq8064_pm8921_platform_data.num_regulators
+			= msm8064_pm8921_regulator_pdata_len;
+	} else {
+		apq8064_pm8921_platform_data.regulator_pdatas
+			= msm8064_pm8917_regulator_pdata;
+		apq8064_pm8921_platform_data.num_regulators
+			= msm8064_pm8917_regulator_pdata_len;
+	}
 
-	if (machine_is_apq8064_rumi3()) {
-		apq8064_pm8921_irq_pdata.devirq = 0;
-		apq8064_pm8821_irq_pdata.devirq = 0;
-	} else if (machine_is_apq8064_mtp()) {
+	if (machine_is_apq8064_mtp()) {
 		apq8064_pm8921_bms_pdata.battery_type = BATT_PALLADIUM;
 	} else if (machine_is_apq8064_liquid()) {
 		apq8064_pm8921_bms_pdata.battery_type = BATT_DESAY;
-	} else if (machine_is_apq8064_cdp()) {
+	} else if (machine_is_apq8064_cdp() || machine_is_apq8064_adp_2() ||
+			machine_is_apq8064_adp2_es2()
+			|| machine_is_apq8064_adp2_es2p5()) {
 		apq8064_pm8921_chg_pdata.has_dc_supply = true;
+                apq8064_pm8921_chg_pdata.disable_chg_rmvl_wrkarnd = 1;
+		apq8064_pm8921_chg_pdata.disable_charger = true;
+		apq8064_pm8921_bms_pdata.disable_bms = 1;
+		apq8064_pm8921_platform_data.leds_pdata = NULL;
 	}
+
+	if (!machine_is_apq8064_mtp() && !machine_is_apq8064_liquid())
+		apq8064_pm8921_chg_pdata.battery_less_hardware = 1;
+
+	if (machine_is_mpq8064_hrd())
+		apq8064_pm8921_chg_pdata.disable_chg_rmvl_wrkarnd = 1;
 }

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -14,7 +14,7 @@
 #define _MSM_SMEM_H_
 
 #include <linux/types.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 
 enum smem_type {
 	SMEM_ION,

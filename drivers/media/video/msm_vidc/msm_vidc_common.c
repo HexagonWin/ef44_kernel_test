@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -22,7 +22,7 @@
 #include "vidc_hal_api.h"
 #include "msm_smem.h"
 
-#define HW_RESPONSE_TIMEOUT 5000
+#define HW_RESPONSE_TIMEOUT (5 * 60 * 1000)
 
 #define IS_ALREADY_IN_STATE(__p, __d) ({\
 	int __rc = (__p >= __d);\
@@ -1126,7 +1126,7 @@ static int msm_vidc_load_resources(int flipped_state,
 		pr_err("inst: %p is already in state: %d\n", inst, inst->state);
 		goto exit;
 	}
-	ocmem_sz = get_ocmem_requirement(inst->height, inst->width);
+	ocmem_sz = get_ocmem_requirement(inst->prop.height, inst->prop.width);
 	rc = msm_comm_alloc_ocmem(inst->core, ocmem_sz);
 	if (rc)
 		pr_warn("Failed to allocate OCMEM. Performance will be impacted\n");
@@ -1421,23 +1421,6 @@ exit:
 	return rc;
 }
 
-int msm_vidc_decoder_cmd(void *instance, struct v4l2_decoder_cmd *dec)
-{
-	int rc = 0;
-	struct msm_vidc_inst *inst = (struct msm_vidc_inst *)instance;
-	mutex_lock(&inst->sync_lock);
-	if (dec->cmd != V4L2_DEC_CMD_STOP)
-		return -EINVAL;
-	rc = vidc_hal_session_flush((void *)inst->session, HAL_FLUSH_OUTPUT);
-	if (rc) {
-		pr_err("Failed to get property\n");
-		goto exit;
-	}
-exit:
-	mutex_unlock(&inst->sync_lock);
-	return rc;
-}
-
 int msm_comm_set_scratch_buffers(struct msm_vidc_inst *inst)
 {
 	int rc = 0;
@@ -1446,10 +1429,13 @@ int msm_comm_set_scratch_buffers(struct msm_vidc_inst *inst)
 	struct list_head *ptr, *next;
 	struct vidc_buffer_addr_info buffer_info;
 	unsigned long flags;
+	struct hal_buffer_requirements *scratch_buf =
+		&inst->buff_req.buffer[HAL_BUFFER_INTERNAL_SCRATCH];
 	int i;
+
 	pr_debug("scratch: num = %d, size = %d\n",
-			inst->buff_req.buffer[6].buffer_count_actual,
-			inst->buff_req.buffer[6].buffer_size);
+			scratch_buf->buffer_count_actual,
+			scratch_buf->buffer_size);
 	spin_lock_irqsave(&inst->lock, flags);
 	if (!list_empty(&inst->internalbufs)) {
 		list_for_each_safe(ptr, next, &inst->internalbufs) {
@@ -1461,40 +1447,103 @@ int msm_comm_set_scratch_buffers(struct msm_vidc_inst *inst)
 		}
 	}
 	spin_unlock_irqrestore(&inst->lock, flags);
-
-
-	for (i = 0; i < inst->buff_req.buffer[6].buffer_count_actual;
+	if (scratch_buf->buffer_size) {
+		for (i = 0; i < scratch_buf->buffer_count_actual;
 				i++) {
-		handle = msm_smem_alloc(inst->mem_client,
-				inst->buff_req.buffer[6].buffer_size, 1, 0,
+			handle = msm_smem_alloc(inst->mem_client,
+				scratch_buf->buffer_size, 1, 0,
 				inst->core->resources.io_map[NS_MAP].domain, 0);
-		if (!handle) {
-			pr_err("Failed to allocate scratch memory\n");
-			rc = -ENOMEM;
-			goto err_no_mem;
-		}
-		binfo = kzalloc(sizeof(*binfo), GFP_KERNEL);
-		if (!binfo) {
-			pr_err("Out of memory\n");
-			rc = -ENOMEM;
-			goto err_no_mem;
-		}
-		binfo->handle = handle;
-		spin_lock_irqsave(&inst->lock, flags);
-		list_add_tail(&binfo->list, &inst->internalbufs);
-		spin_unlock_irqrestore(&inst->lock, flags);
-		buffer_info.buffer_size =
-				inst->buff_req.buffer[6].buffer_size;
-		buffer_info.buffer_type = HAL_BUFFER_INTERNAL_SCRATCH;
-		buffer_info.num_buffers = 1;
-		buffer_info.align_device_addr = handle->device_addr;
-		rc = vidc_hal_session_set_buffers((void *) inst->session,
-				&buffer_info);
-		if (rc) {
-			pr_err("vidc_hal_session_set_buffers failed");
-			break;
+			if (!handle) {
+				pr_err("Failed to allocate scratch memory\n");
+				rc = -ENOMEM;
+				goto err_no_mem;
+			}
+			binfo = kzalloc(sizeof(*binfo), GFP_KERNEL);
+			if (!binfo) {
+				pr_err("Out of memory\n");
+				rc = -ENOMEM;
+				goto fail_kzalloc;
+			}
+			binfo->handle = handle;
+			buffer_info.buffer_size = scratch_buf->buffer_size;
+			buffer_info.buffer_type = HAL_BUFFER_INTERNAL_SCRATCH;
+			buffer_info.num_buffers = 1;
+			buffer_info.align_device_addr = handle->device_addr;
+			rc = vidc_hal_session_set_buffers(
+					(void *) inst->session,	&buffer_info);
+			if (rc) {
+				pr_err("vidc_hal_session_set_buffers failed");
+				goto fail_set_buffers;
+			}
+			spin_lock_irqsave(&inst->lock, flags);
+			list_add_tail(&binfo->list, &inst->internalbufs);
+			spin_unlock_irqrestore(&inst->lock, flags);
 		}
 	}
+	return rc;
+fail_set_buffers:
+	kfree(binfo);
+fail_kzalloc:
+	msm_smem_free(inst->mem_client, handle);
+err_no_mem:
+	return rc;
+}
+
+int msm_comm_set_persist_buffers(struct msm_vidc_inst *inst)
+{
+	int rc = 0;
+	struct msm_smem *handle;
+	struct internal_buf *binfo;
+	struct vidc_buffer_addr_info buffer_info;
+	unsigned long flags;
+	struct hal_buffer_requirements *persist_buf =
+		&inst->buff_req.buffer[HAL_BUFFER_INTERNAL_PERSIST];
+	int i;
+	pr_debug("persist: num = %d, size = %d\n",
+		persist_buf->buffer_count_actual,
+		persist_buf->buffer_size);
+	if (!list_empty(&inst->persistbufs)) {
+		pr_err("Persist buffers already allocated\n");
+		return rc;
+	}
+
+	if (persist_buf->buffer_size) {
+		for (i = 0;	i <	persist_buf->buffer_count_actual; i++) {
+			handle = msm_smem_alloc(inst->mem_client,
+				persist_buf->buffer_size, 1, 0,
+				inst->core->resources.io_map[NS_MAP].domain, 0);
+			if (!handle) {
+				pr_err("Failed to allocate persist memory\n");
+				rc = -ENOMEM;
+				goto err_no_mem;
+			}
+			binfo = kzalloc(sizeof(*binfo), GFP_KERNEL);
+			if (!binfo) {
+				pr_err("Out of memory\n");
+				rc = -ENOMEM;
+				goto fail_kzalloc;
+			}
+			binfo->handle = handle;
+			buffer_info.buffer_size = persist_buf->buffer_size;
+			buffer_info.buffer_type = HAL_BUFFER_INTERNAL_PERSIST;
+			buffer_info.num_buffers = 1;
+			buffer_info.align_device_addr = handle->device_addr;
+			rc = vidc_hal_session_set_buffers(
+				(void *) inst->session, &buffer_info);
+			if (rc) {
+				pr_err("vidc_hal_session_set_buffers failed");
+				goto fail_set_buffers;
+			}
+			spin_lock_irqsave(&inst->lock, flags);
+			list_add_tail(&binfo->list, &inst->persistbufs);
+			spin_unlock_irqrestore(&inst->lock, flags);
+		}
+	}
+	return rc;
+fail_set_buffers:
+	kfree(binfo);
+fail_kzalloc:
+	msm_smem_free(inst->mem_client, handle);
 err_no_mem:
 	return rc;
 }

@@ -31,7 +31,6 @@
 /* big enough to hold our biggest descriptor */
 #define USB_BUFSIZ	4096
 
-static struct usb_composite_driver *composite;
 static int (*composite_gadget_bind)(struct usb_composite_dev *cdev);
 
 /* Some systems will need runtime overrides for the  product identifiers
@@ -585,6 +584,7 @@ static void reset_config(struct usb_composite_dev *cdev)
 		bitmap_zero(f->endpoints, 32);
 	}
 	cdev->config = NULL;
+	cdev->delayed_status = 0;
 }
 
 static int set_config(struct usb_composite_dev *cdev,
@@ -877,6 +877,7 @@ static int lookup_string(
 static int get_string(struct usb_composite_dev *cdev,
 		void *buf, u16 language, int id)
 {
+	struct usb_composite_driver	*composite = cdev->driver;
 	struct usb_configuration	*c;
 	struct usb_function		*f;
 	int				len;
@@ -1365,8 +1366,12 @@ static void composite_disconnect(struct usb_gadget *gadget)
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (cdev->config)
 		reset_config(cdev);
-	if (composite->disconnect)
-		composite->disconnect(cdev);
+	if (cdev->driver->disconnect)
+		cdev->driver->disconnect(cdev);
+	if (cdev->delayed_status != 0) {
+		INFO(cdev, "delayed status mismatch..resetting\n");
+		cdev->delayed_status = 0;
+	}
 	spin_unlock_irqrestore(&cdev->lock, flags);
 }
 
@@ -1403,8 +1408,8 @@ composite_unbind(struct usb_gadget *gadget)
 		list_del(&c->list);
 		unbind_config(cdev, c);
 	}
-	if (composite->unbind)
-		composite->unbind(cdev);
+	if (cdev->driver->unbind)
+		cdev->driver->unbind(cdev);
 
 	if (cdev->req) {
 		kfree(cdev->req->buf);
@@ -1413,7 +1418,6 @@ composite_unbind(struct usb_gadget *gadget)
 	device_remove_file(&gadget->dev, &dev_attr_suspended);
 	kfree(cdev);
 	set_gadget_data(gadget, NULL);
-	composite = NULL;
 }
 
 static u8 override_id(struct usb_composite_dev *cdev, u8 *desc)
@@ -1429,9 +1433,11 @@ static u8 override_id(struct usb_composite_dev *cdev, u8 *desc)
 	return *desc;
 }
 
-static int composite_bind(struct usb_gadget *gadget)
+static int composite_bind(struct usb_gadget *gadget,
+		struct usb_gadget_driver *gdriver)
 {
 	struct usb_composite_dev	*cdev;
+	struct usb_composite_driver	*composite = to_cdriver(gdriver);
 	int				status = -ENOMEM;
 
 	cdev = kzalloc(sizeof *cdev, GFP_KERNEL);
@@ -1546,8 +1552,8 @@ composite_suspend(struct usb_gadget *gadget)
 				f->suspend(f);
 		}
 	}
-	if (composite->suspend)
-		composite->suspend(cdev);
+	if (cdev->driver->suspend)
+		cdev->driver->suspend(cdev);
 
 	cdev->suspended = 1;
 
@@ -1565,8 +1571,8 @@ composite_resume(struct usb_gadget *gadget)
 	 * suspend/resume callbacks?
 	 */
 	DBG(cdev, "resume\n");
-	if (composite->resume)
-		composite->resume(cdev);
+	if (cdev->driver->resume)
+		cdev->driver->resume(cdev);
 	if (cdev->config) {
 		list_for_each_entry(f, &cdev->config->functions, list) {
 			if (f->resume)
@@ -1584,7 +1590,7 @@ composite_resume(struct usb_gadget *gadget)
 
 /*-------------------------------------------------------------------------*/
 
-static struct usb_gadget_driver composite_driver = {
+struct usb_gadget_driver composite_driver_template = {
 #ifdef CONFIG_USB_GADGET_SUPERSPEED
 	.max_speed	= USB_SPEED_SUPER,
 #else
@@ -1626,25 +1632,26 @@ static struct usb_gadget_driver composite_driver = {
 int usb_composite_probe(struct usb_composite_driver *driver,
 			       int (*bind)(struct usb_composite_dev *cdev))
 {
+	struct usb_gadget_driver *gadget_driver;
 	int retval;
 
-	if (!driver || !driver->dev || !bind || composite)
+	if (!driver || !driver->dev || !bind)
 		return -EINVAL;
 
 	if (!driver->name)
 		driver->name = "composite";
 	if (!driver->iProduct)
 		driver->iProduct = driver->name;
-	composite_driver.function =  (char *) driver->name;
-	composite_driver.driver.name = driver->name;
-	composite_driver.max_speed =
-		min_t(u8, composite_driver.max_speed, driver->max_speed);
-	composite = driver;
+	driver->gadget_driver = composite_driver_template;
+	gadget_driver = &driver->gadget_driver;
+
+	gadget_driver->function =  (char *) driver->name;
+	gadget_driver->driver.name = driver->name;
+	gadget_driver->max_speed =
+		min_t(u8, gadget_driver->max_speed, driver->max_speed);
 	composite_gadget_bind = bind;
 
-	retval = usb_gadget_probe_driver(&composite_driver, composite_bind);
-	if (retval)
-		composite = NULL;
+	retval = usb_gadget_probe_driver(gadget_driver, composite_bind);
 	return retval;
 }
 
@@ -1657,9 +1664,7 @@ int usb_composite_probe(struct usb_composite_driver *driver,
  */
 void usb_composite_unregister(struct usb_composite_driver *driver)
 {
-	if (composite != driver)
-		return;
-	usb_gadget_unregister_driver(&composite_driver);
+	usb_gadget_unregister_driver(&driver->gadget_driver);
 }
 
 /**

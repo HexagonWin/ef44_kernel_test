@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2013, 2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -36,6 +36,13 @@ struct msm_spm_device {
 	struct msm_spm_driver_data reg_data;
 	struct msm_spm_power_modes *modes;
 	uint32_t num_modes;
+	uint32_t cpu_vdd;
+};
+
+struct msm_spm_vdd_info {
+	uint32_t cpu;
+	uint32_t vlevel;
+	int err;
 };
 
 struct msm_spm_vdd_info {
@@ -54,6 +61,7 @@ static void msm_spm_smp_set_vdd(void *data)
 	struct msm_spm_vdd_info *info = (struct msm_spm_vdd_info *)data;
 
 	dev = &per_cpu(msm_cpu_spm_device, info->cpu);
+	dev->cpu_vdd = info->vlevel;
 	info->err = msm_spm_drv_set_vdd(&dev->reg_data, info->vlevel);
 }
 
@@ -65,7 +73,7 @@ int msm_spm_set_vdd(unsigned int cpu, unsigned int vlevel)
 	info.cpu = cpu;
 	info.vlevel = vlevel;
 
-	if (cpu_online(cpu)) {
+	if ((smp_processor_id() != cpu) && cpu_online(cpu)) {
 		/**
 		 * We do not want to set the voltage of another core from
 		 * this core, as its possible that we may race the vdd change
@@ -97,6 +105,15 @@ unsigned int msm_spm_get_vdd(unsigned int cpu)
 
 	dev = &per_cpu(msm_cpu_spm_device, cpu);
 	return msm_spm_drv_get_sts_curr_pmic_data(&dev->reg_data);
+}
+EXPORT_SYMBOL(msm_spm_get_vdd);
+
+unsigned int msm_spm_get_vdd(unsigned int cpu)
+{
+	struct msm_spm_device *dev;
+
+	dev = &per_cpu(msm_cpu_spm_device, cpu);
+	return dev->cpu_vdd;
 }
 EXPORT_SYMBOL(msm_spm_get_vdd);
 
@@ -178,13 +195,14 @@ int msm_spm_turn_on_cpu_rail(unsigned int cpu)
 		MSM_SAW3_BASE
 	};
 
-	if (cpu == 0 || cpu >= num_possible_cpus())
+	if (cpu == 0 || cpu >= num_possible_cpus() ||
+				cpu >= ARRAY_SIZE(saw_bases))
 		return -EINVAL;
 
 	reg = saw_bases[cpu];
 
-	if (cpu_is_msm8960() || cpu_is_msm8930() || cpu_is_msm8930aa() ||
-	    cpu_is_apq8064() || cpu_is_msm8627()) {
+	if (soc_class_is_msm8960() || soc_class_is_msm8930() ||
+	    soc_class_is_apq8064()) {
 		val = 0xA4;
 		reg += 0x14;
 		timeout = 512;
@@ -294,10 +312,10 @@ static int __devinit msm_spm_dev_probe(struct platform_device *pdev)
 		{"qcom,saw2-cfg", MSM_SPM_REG_SAW2_CFG},
 		{"qcom,saw2-avs-ctl", MSM_SPM_REG_SAW2_AVS_CTL},
 		{"qcom,saw2-avs-hysteresis", MSM_SPM_REG_SAW2_AVS_HYSTERESIS},
-		{"qcom,saw2-spm-ctl", MSM_SPM_REG_SAW2_SPM_CTL},
-		{"qcom,saw2-pmic-dly", MSM_SPM_REG_SAW2_PMIC_DLY},
 		{"qcom,saw2-avs-limit", MSM_SPM_REG_SAW2_AVS_LIMIT},
+		{"qcom,saw2-avs-dly", MSM_SPM_REG_SAW2_AVS_DLY},
 		{"qcom,saw2-spm-dly", MSM_SPM_REG_SAW2_SPM_DLY},
+		{"qcom,saw2-spm-ctl", MSM_SPM_REG_SAW2_SPM_CTL},
 		{"qcom,saw2-pmic-data0", MSM_SPM_REG_SAW2_PMIC_DATA_0},
 		{"qcom,saw2-pmic-data1", MSM_SPM_REG_SAW2_PMIC_DATA_1},
 		{"qcom,saw2-pmic-data2", MSM_SPM_REG_SAW2_PMIC_DATA_2},
