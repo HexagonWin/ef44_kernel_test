@@ -775,8 +775,8 @@ static struct msm_camera_csi_lane_params ce1502_csi_lane_params = {
 
 static struct msm_camera_sensor_platform_info sensor_board_info_ce1502 = {
 	.mount_angle	= 90,//?
-	.cam_vreg = msm_8960_back_cam_vreg,
-	.num_vreg = ARRAY_SIZE(msm_8960_back_cam_vreg),
+	.cam_vreg = msm_8960_cam_vreg,
+	.num_vreg = ARRAY_SIZE(msm_8960_cam_vreg),
 	.gpio_conf = &msm_8960_back_cam_gpio_conf,
 	.csi_lane_params = &ce1502_csi_lane_params,
 };
@@ -804,8 +804,8 @@ static struct msm_camera_csi_lane_params yacd5c1sbdbc_csi_lane_params = {
 
 static struct msm_camera_sensor_platform_info sensor_board_info_yacd5c1sbdbc = {
 	.mount_angle	= 270, //90, //?
-	.cam_vreg = msm_8960_front_cam_vreg,
-	.num_vreg = ARRAY_SIZE(msm_8960_front_cam_vreg),
+	.cam_vreg = msm_8960_cam_vreg,
+	.num_vreg = ARRAY_SIZE(msm_8960_cam_vreg),
 	.gpio_conf = &msm_8960_front_cam_gpio_conf,
 	.csi_lane_params = &yacd5c1sbdbc_csi_lane_params,
 };
@@ -1219,5 +1219,6 @@ struct msm_camera_board_info msm8960_camera_board_info = {
 	.board_info = msm8960_camera_i2c_boardinfo,
 	.num_i2c_board_info = ARRAY_SIZE(msm8960_camera_i2c_boardinfo),
 };
+#endif
 #endif
 #endif

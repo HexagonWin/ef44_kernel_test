@@ -878,11 +878,6 @@ int diag_switch_logging(unsigned long ioarg)
 				queue_work(driver->diag_wq,
 					&(driver->smd_data[i].
 						diag_read_smd_work));
-			driver->num_hsic_buf_tbl_entries = 0;
-			for (i = 0; i < driver->poolsize_hsic_write; i++) {
-				driver->hsic_buf_tbl[i].buf = 0;
-				driver->hsic_buf_tbl[i].length = 0;
-			}
 		}
 		diag_cmp_logging_modes_sdio_pipe(temp,
 						driver->logging_mode);

@@ -611,7 +611,7 @@ static struct pm8921_charger_platform_data pm8921_chg_pdata __devinitdata = {
   .hot_thr 			= 1,
   //.vin_min 			= 4400,
 #elif defined (CONFIG_MACH_MSM8960_EF44S)
-	.safety_time		= 600,	
+//	.safety_time		= 600,	
 	.update_time		= 20000,
 	.max_voltage		= 4360,
 	.min_voltage	= 3600,

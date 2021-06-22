@@ -1354,7 +1354,7 @@ static char mipi_dsi_splash_is_enabled(void)
 	return mdp_pdata.cont_splash_enabled;
 }
 
-#define LPM_CHANNEL0 0
+#define LPM_CHANNEL0 0 /* Unused variable; remove when used
 static int toshiba_gpio[] = {LPM_CHANNEL0};
 
 static struct mipi_dsi_panel_platform_data toshiba_pdata = {
@@ -1369,7 +1369,7 @@ static struct platform_device mipi_dsi_toshiba_panel_device = {
 		.platform_data = &toshiba_pdata,
 	}
 };
-#endif
+*/
 
 #define FPGA_3D_GPIO_CONFIG_ADDR	0xB5
 static int dsi2lvds_gpio[4] = {

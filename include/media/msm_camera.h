@@ -1012,7 +1012,7 @@ struct msm_snapshot_pp_status {
 #if 1 //def F_PANTECH_CAMERA_FIX_CFG_FOCUS_MODE
 #define CFG_FOCUS_MODE 70
 #endif
-#define CFG_MAX                         71
+//#define CFG_MAX                         71
 
 #else
 

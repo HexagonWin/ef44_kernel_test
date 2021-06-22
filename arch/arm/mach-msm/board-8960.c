@@ -1019,6 +1019,7 @@ static void __init msm8960_allocate_memory_regions(void)
  * does not need to be as high as 2.85V. It is choosen for
  * microphone sensitivity purpose.
  */
+/* Not used; enable when used
 static struct wcd9xxx_pdata tabla_platform_data = {
 	.slimbus_slave_device = {
 		.name = "tabla-slave",
@@ -1076,8 +1077,8 @@ static struct wcd9xxx_pdata tabla_platform_data = {
 		.optimum_uA = WCD9XXX_VDDD_CDC_A_CUR_MAX,
 	},
 	},
-};
-
+};*/
+/* Not used; enable when used
 static struct slim_device msm_slim_tabla = {
 	.name = "tabla-slim",
 	.e_addr = {0, 1, 0x10, 0, 0x17, 2},
@@ -1151,7 +1152,7 @@ static struct slim_device msm_slim_tabla20 = {
 	.dev = {
 		.platform_data = &tabla20_platform_data,
 	},
-};
+}; */
 #endif
 
 #ifndef CONFIG_WIFI_CONTROL_FUNC
