@@ -52,7 +52,6 @@
 
 /* Allow a maximum device id of this many digits */
 #define MAX_DEVICE_DIGITS  10
-static int vddmin_gpios_sent;
 #define EXTERNAL_MODEM "external_modem"
 #define SUBSYS_NAME_LENGTH \
 	(sizeof(EXTERNAL_MODEM) + MAX_DEVICE_DIGITS)
@@ -849,10 +848,6 @@ static int mdm_subsys_ramdumps(int want_dumps,
 }
 
 /* Once the gpios are sent to RPM and debugging
- * starts, there is no way to stop it without
- * rebooting the device.
- */
-static int mdm_debug_mask_set(void *data, u64 val)
  * starts, there is no way to stop it without
  * rebooting the device.
  */
