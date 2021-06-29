@@ -7,7 +7,7 @@
 # 2011-10-24 effectivesky : modified
 # 2010-12-29 allydrop     : created
 ###############################################################################
-make O=./obj/KERNEL_OBJ/ clean
+make O=./ezout/ clean
 if [ -f ./zImage ]
 then
     rm ./zImage

@@ -19,7 +19,7 @@
   export ARCH=arm #Architecture.
   export CROSS_COMPILE=~/arm-eabi-4.8/bin/arm-eabi- #Toolchain.
   export EZKBUILD_OUTPUT=ezout #Output folder.
-  export EZKBUILD_JOBS=10 #How many j option.
+# export EZKBUILD_JOBS=10 #How many j option.
 
   export EZKBUILD_VER=3.1 #EasyKBUILD version. Don't edit
 #======================================================================#
@@ -38,7 +38,7 @@
 #                                                                      #
   mkdir -p ./$EZKBUILD_OUTPUT/
   make O=./$EZKBUILD_OUTPUT/ $1
-  make -j$EZKBUILD_JOBS O=./$EZKBUILD_OUTPUT/
+  make O=./$EZKBUILD_OUTPUT/
 
   echo "EasyKBuild $EZKBUILD_VER script finished."
 ########################################################################
