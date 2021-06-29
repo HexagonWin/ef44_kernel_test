@@ -59,9 +59,6 @@ uint16_t wrap_count;
 void encode_rsp_and_send(int buf_length)
 {
 	struct diag_smd_info *data = &(driver->smd_data[MODEM_DATA]);
-	/* mimic the last entry as actual_last while creation */	\
-	*(int *)(msg_mask_tbl_ptr) = MSG_SSID_ ## XX ## _LAST;		\
-	msg_mask_tbl_ptr += 4;						\
 
 	if (buf_length > APPS_BUF_SIZE) {
 		pr_err("diag: In %s, invalid len %d, permissible len %d\n",
@@ -640,9 +637,6 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 							POOL_TYPE_HSIC_WRITE);
 						pr_err_ratelimited("diag: HSIC write failure, err: %d, ch %d\n",
 							err, index);
-			} else {
-				err = -1;
-			}
 					}
 				} else {
 					pr_err("diag: allocate write fail\n");
@@ -652,9 +646,6 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 				pr_err("diag: Incorrect HSIC data "
 						"while USB write\n");
 				err = -1;
-	} else if (driver->ch_wcnss && !buf &&
-		(driver->logging_mode == MEMORY_DEVICE_MODE)) {
-		chk_logging_wakeup();
 			}
 		} else if (data_type == SMUX_DATA) {
 			if (write_ptr) {
@@ -666,26 +657,13 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 			} else {
 				pr_err("diag:%d: Failed to write to USB\n",
 					__LINE__);
-	} else if (driver->chqdsp && !buf &&
-		(driver->logging_mode == MEMORY_DEVICE_MODE)) {
-		chk_logging_wakeup();
 			}
-		for (i = 0 ; i <= actual_last - first ; i++)
-			pr_info("diag: MASK:%x\n", *((uint32_t *)ptr + i));
 		}
 #endif
 		APPEND_DEBUG('d');
 	}
 #endif /* DIAG OVER USB */
     return err;
-		actual_last_ptr = ptr;
-		ptr += 4;
-		if (start >= first && start <= actual_last) {
-				*(uint32_t *)(actual_last_ptr) = end;
-			}
-			if (CHK_OVERFLOW(ptr_buffer_start, ptr, ptr_buffer_end,
-			memcpy(ptr, &(end), 4); /* create actual_last entry */
-			ptr += 4;
 }
 
 static void diag_update_pkt_buffer(unsigned char *buf)
@@ -772,9 +750,6 @@ void diag_send_data(struct diag_master_table entry, unsigned char *buf,
 			} else {
 				pr_alert("diag: In %s, incorrect channel: %d",
 					__func__, entry.client_id);
-		if ((updated_ssid_first >= first && updated_ssid_last <=
-			 actual_last) || (updated_ssid_first == ALL_SSID)) {
-								 first + 1;
 			}
 		}
 	}

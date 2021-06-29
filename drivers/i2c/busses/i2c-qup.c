@@ -36,7 +36,6 @@
 #include <linux/gpio.h>
 #include <linux/of.h>
 #include <linux/of_i2c.h>
-#include <mach/socinfo.h>
 
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("0.2");
@@ -172,10 +171,6 @@ struct qup_i2c_dev {
 	void                         *complete;
 	int                          i2c_gpios[ARRAY_SIZE(i2c_rsrcs)];
 };
-
-#if defined(CONFIG_MACH_MSM8960_EF44S) || defined(CONFIG_MACH_MSM8960_MAGNUS)
-#define EXIT_LOOP_VAL	100
-#endif
 
 #ifdef DEBUG
 static void
@@ -779,10 +774,6 @@ qup_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	int err;
 
 	pm_runtime_get_sync(dev->dev);
-
-#if defined(CONFIG_MACH_MSM8960_EF44S) || defined(CONFIG_MACH_MSM8960_MAGNUS)
-	int exit_infinite_loop_cnt = 0;
-#endif
 	mutex_lock(&dev->mlock);
 
 	if (dev->suspended) {
@@ -1035,20 +1026,7 @@ timeout_err:
 					if (i % 2 == 0) {
 						if ((rd_status &
 							QUP_IN_NOT_EMPTY) == 0)
-#if defined(CONFIG_MACH_MSM8960_EF44S) || defined(CONFIG_MACH_MSM8960_MAGNUS)
-						{
-							if (dev->err_irq == GSBI9_QUP_IRQ)
-							{
-								exit_infinite_loop_cnt++;
-								dev_dbg(dev->dev, "sayuss GSBI # dev->err_irq = 0x%x\n",dev->err_irq);
-								if( EXIT_LOOP_VAL < exit_infinite_loop_cnt )
-									goto	out_err;
-							}
-							break; 
-						}
-#else
 							break;
-#endif
 						dval = readl_relaxed(dev->base +
 							QUP_IN_FIFO_BASE);
 						dev->msg->buf[dev->pos] =
@@ -1362,8 +1340,6 @@ blsp_core_init:
 	 */
 	if (dev->pdata->keep_ahb_clk_on)
 		clk_prepare_enable(dev->pclk);
-	if (dev->pdata->keep_ahb_clk_on)
-		clk_enable(dev->pclk);
 
 	ret = i2c_add_numbered_adapter(&dev->adapter);
 	if (ret) {
@@ -1434,7 +1410,6 @@ qup_i2c_remove(struct platform_device *pdev)
 	free_irq(dev->err_irq, dev);
 	i2c_del_adapter(&dev->adapter);
 	if (!dev->pdata->keep_ahb_clk_on) {
-	if (!dev->pdata->keep_ahb_clk_on) {
 		clk_put(dev->pclk);
 	}
 	clk_put(dev->clk);
@@ -1471,7 +1446,6 @@ static int i2c_qup_pm_suspend_runtime(struct device *device)
 	mutex_unlock(&dev->mlock);
 	if (dev->pwr_state != 0) {
 		qup_i2c_pwr_mgmt(dev, 0);
-	if (!dev->pdata->keep_ahb_clk_on)
 		qup_i2c_free_gpios(dev);
 	}
 	return 0;

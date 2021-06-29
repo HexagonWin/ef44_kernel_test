@@ -104,12 +104,6 @@ void *diagmem_alloc(struct diagchar_dev *driver, int size, int pool_type)
 			}
 		}
 #endif
-				buf = mempool_alloc(
-					driver->diag_hsic_write_pool,
-					GFP_ATOMIC);
-			}
-		}
-#endif
 	}
 	return buf;
 }
@@ -159,30 +153,7 @@ void diagmem_exit(struct diagchar_dev *driver, int pool_type)
 		} else if (driver->ref_count == 0 && pool_type ==
 							POOL_TYPE_ALL) {
 			pr_err("diag: Unable to destroy STRUCT mempool");
-	}
-#ifdef CONFIG_DIAG_BRIDGE_CODE
-	if (driver->diag_hsic_pool && (driver->hsic_device_enabled == 0)) {
-		if (driver->count_hsic_pool == 0) {
-			mempool_destroy(driver->diag_hdlc_pool);
-			driver->diag_hdlc_pool = NULL;
-		} else if (pool_type == POOL_TYPE_ALL)
-			pr_err("Unable to destroy HDLC mempool");
-	}
-
-	if (driver->diag_hsic_write_pool &&
-		(driver->hsic_device_enabled == 0)) {
-		/*
-		 * Free up struct pool ONLY if there are no outstanding
-		 * transactions(aggregation buffer) with USB
-		 */
-		if (driver->count_hsic_write_pool == 0 &&
-			driver->count_hsic_pool == 0) {
-			mempool_destroy(driver->diag_hsic_write_pool);
-			driver->diag_hsic_write_pool = NULL;
-		} else if (pool_type == POOL_TYPE_ALL)
-			pr_err("Unable to destroy HSIC USB struct mempool");
-	}
-#endif
+		}
 	}
 #ifdef CONFIG_DIAGFWD_BRIDGE_CODE
 	for (index = 0; index < MAX_HSIC_CH; index++) {

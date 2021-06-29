@@ -39,9 +39,6 @@ struct clk_pair {
 	uint map;
 };
 
-/* MARUKO KDDI issue num@1708 p13447 shinjg 20130225 */
-#define CONFIG_QALCOMM_BUG_FIX_EBI_ERROR
-
 struct clk_pair clks[KGSL_MAX_CLKS] = {
 	{
 		.name = "src_clk",
@@ -650,9 +647,6 @@ DEVICE_ATTR(num_pwrlevels, 0444,
 	NULL);
 DEVICE_ATTR(reset_count, 0444,
 	kgsl_pwrctrl_reset_count_show,
-	NULL);
-DEVICE_ATTR(gpu_available_frequencies, 0444,
-	kgsl_pwrctrl_gpu_available_frequencies_show,
 	NULL);
 
 static const struct device_attribute *pwrctrl_attr_list[] = {
@@ -1281,7 +1275,6 @@ int kgsl_pwrctrl_wake(struct kgsl_device *device)
 				jiffies + device->pwrctrl.interval_timeout);
 		mod_timer(&device->hang_timer,
 			(jiffies + msecs_to_jiffies(KGSL_TIMEOUT_HANG_DETECT)));
-#endif
 		pm_qos_update_request(&device->pm_qos_req_dma,
 					GPU_SWFI_LATENCY);
 	case KGSL_STATE_ACTIVE:
