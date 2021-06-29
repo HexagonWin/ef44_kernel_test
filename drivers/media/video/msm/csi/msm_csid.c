@@ -657,7 +657,9 @@ static const struct v4l2_subdev_ops msm_csid_subdev_ops = {
 static int __devinit csid_probe(struct platform_device *pdev)
 {
 	struct csid_device *new_csid_dev;
+	struct msm_cam_subdev_info sd_info;
 	struct intr_table_entry irq_req;
+
 	int rc = 0;
 	CDBG("%s:%d called\n", __func__, __LINE__);
 	new_csid_dev = kzalloc(sizeof(struct csid_device), GFP_KERNEL);
@@ -703,7 +705,10 @@ static int __devinit csid_probe(struct platform_device *pdev)
 	}
 
 	new_csid_dev->pdev = pdev;
-	msm_cam_register_subdev_node(&new_csid_dev->subdev, CSID_DEV, pdev->id);
+	sd_info.sdev_type = CSID_DEV;
+	sd_info.sd_index = pdev->id;
+	sd_info.irq_num = new_csid_dev->irq->start;
+	msm_cam_register_subdev_node(&new_csid_dev->subdev, &sd_info);
 
 	media_entity_init(&new_csid_dev->subdev.entity, 0, NULL, 0);
 	new_csid_dev->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV;

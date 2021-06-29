@@ -950,7 +950,9 @@ static const struct v4l2_subdev_internal_ops msm_ispif_internal_ops;
 static int __devinit ispif_probe(struct platform_device *pdev)
 {
 	int rc = 0;
+	struct msm_cam_subdev_info sd_info;
 	struct ispif_device *ispif;
+
 	CDBG("%s\n", __func__);
 	ispif = kzalloc(sizeof(struct ispif_device), GFP_KERNEL);
 	if (!ispif) {
@@ -1002,7 +1004,10 @@ static int __devinit ispif_probe(struct platform_device *pdev)
 	}
 
 	ispif->pdev = pdev;
-	msm_cam_register_subdev_node(&ispif->subdev, ISPIF_DEV, pdev->id);
+	sd_info.sdev_type = ISPIF_DEV;
+	sd_info.sd_index = pdev->id;
+	sd_info.irq_num = ispif->irq->start;
+	msm_cam_register_subdev_node(&ispif->subdev, &sd_info);
 
 	media_entity_init(&ispif->subdev.entity, 0, NULL, 0);
 	ispif->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV;

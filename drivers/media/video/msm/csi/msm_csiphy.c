@@ -406,6 +406,8 @@ static int __devinit csiphy_probe(struct platform_device *pdev)
 {
 	struct csiphy_device *new_csiphy_dev;
 	int rc = 0;
+	struct msm_cam_subdev_info sd_info;
+
 	new_csiphy_dev = kzalloc(sizeof(struct csiphy_device), GFP_KERNEL);
 	if (!new_csiphy_dev) {
 		pr_err("%s: no enough memory\n", __func__);
@@ -461,8 +463,11 @@ static int __devinit csiphy_probe(struct platform_device *pdev)
 	disable_irq(new_csiphy_dev->irq->start);
 
 	new_csiphy_dev->pdev = pdev;
+	sd_info.sdev_type = CSIPHY_DEV;
+	sd_info.sd_index = pdev->id;
+	sd_info.irq_num = new_csiphy_dev->irq->start;
 	msm_cam_register_subdev_node(
-		&new_csiphy_dev->subdev, CSIPHY_DEV, pdev->id);
+		&new_csiphy_dev->subdev, &sd_info);
 
 	media_entity_init(&new_csiphy_dev->subdev.entity, 0, NULL, 0);
 	new_csiphy_dev->subdev.entity.type = MEDIA_ENT_T_V4L2_SUBDEV;
